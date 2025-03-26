@@ -423,3 +423,17 @@ function initGalleryModal() {
         });
     });
 }
+
+// Tag validation constants
+const MAX_TAGS_PER_IMAGE = 8;
+const MAX_TAG_LENGTH = 20;
+
+// Validate before adding tags
+function validateTag(tag) {
+    return tag.length <= MAX_TAG_LENGTH;
+}
+
+// Check existing tags
+function countTags(imageId) {
+    return document.querySelectorAll(`[data-image-id="${imageId}"] .badge`).length;
+}

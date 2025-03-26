@@ -1,7 +1,7 @@
 from app import app
 from flask import flash, redirect, render_template, request, jsonify, \
                   send_from_directory, url_for
-from flask_sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy, func, insert
 import os
 # import secrets
 # print(secrets.token_hex(32))
@@ -38,14 +38,34 @@ def index():
 @app.route('/gallery')
 def gallery():
     tag_filter = request.args.get('tag')
+    
     if tag_filter:
-        tag = models.Tag.query.filter_by(name=tag_filter).first_or_404()
-        images = tag.images
+        # Get tag with image count
+        tag = db.session.query(
+            models.Tag,
+            db.func.count(models.ImageTag.iid).label('image_count')
+        ).join(
+            models.ImageTag,
+            models.Tag.id == models.ImageTag.tid
+        ).filter(models.Tag.name == tag_filter).group_by(models.Tag.id).first_or_404()
+        
+        images = tag[0].images.all()  # Explicitly execute the query
     else:
         images = models.Image.query.all()
-
-    all_tags = models.Tag.query.all()
-    return render_template('gallery.html', images=images, all_tags=all_tags)
+    
+    # Get all tags with counts
+    all_tags = db.session.query(
+        models.Tag,
+        db.func.count(models.ImageTag.iid).label('image_count')
+    ).outerjoin(
+        models.ImageTag,
+        models.Tag.id == models.ImageTag.tid
+    ).group_by(models.Tag.id).all()
+    
+    return render_template('gallery.html',
+                           images=images,
+                           all_tags=all_tags,
+                           current_tag=tag_filter)
 
 
 @app.route('/uploader')
@@ -121,32 +141,48 @@ def update_description(image_id):
 @app.route('/edit/<int:image_id>')
 def edit_image(image_id):
     image = models.Image.query.get_or_404(image_id)
-    return render_template('edit_image.html', image=image)
+    all_tags = models.Tag.query.with_entities(models.Tag.name).distinct().all()
+    return render_template('edit_image.html', image=image,
+                           all_tags=[tag[0] for tag in all_tags])
 
 
 @app.route('/add_tag/<int:image_id>', methods=['POST'])
 def add_tag(image_id):
-    tag_name = request.json.get('tag')
-    if not tag_name:
-        return jsonify({'error': 'Tag name is required'}), 400
+    data = request.get_json()
+    tag_name = data['tag'].strip().lower()  # Normalize to lowercase
 
-    # Find or create the tag
-    tag = models.Tag.query.filter_by(name=tag_name).first()
-    if not tag:
-        tag = models.Tag(name=tag_name)
-        db.session.add(tag)
-        db.session.commit()
+    # Validate
+    if len(tag_name) > 20:
+        return jsonify(error="Tag too long (max 20 chars)"), 400
 
-    # Associate the tag with the image
-    image = models.Image.query.get(image_id)
-    if not image:
-        return jsonify({'error': 'Image not found'}), 404
+    image = models.Image.query.get_or_404(image_id)
 
-    if tag not in image.tags:
-        image.tags.append(tag)
-        db.session.commit()
+    # Check tag limit
+    if image.tags.count() >= 8:  # Using .count() for many-to-many
+        return jsonify(error="Maximum 8 tags per image"), 400
 
-    return jsonify({'message': 'Tag added successfully'}), 200
+    # Find or create tag (case-insensitive)
+    existing_tag = models.Tag.query.filter(func.lower(models.Tag.name) == tag_name).first()
+
+    if existing_tag:
+        # Check if image already has this tag
+        if existing_tag in image.tags:
+            return jsonify(error=f"Tag '{tag_name}' already exists"), 400
+    else:
+        existing_tag = models.Tag(name=tag_name.capitalize())  # Store with capitalization
+        db.session.add(existing_tag)
+
+    # Add association
+    db.session.execute(
+        insert(models.ImageTag).values(iid=image_id, tid=existing_tag.id)
+    )
+    db.session.commit()
+
+    return jsonify(
+        success=True,
+        tag=existing_tag.name,
+        tag_id=existing_tag.id
+    )
 
 
 @app.route('/delete/<int:image_id>', methods=['POST'])
@@ -167,10 +203,47 @@ def delete_image(image_id):
     return jsonify({'message': 'File deleted successfully'}), 200
 
 
-@app.route('/tag-manager')
+@app.route('/tag_manager')
 def tag_manager():
-    all_tags = models.Tag.query.order_by(models.Tag.name).all()
-    return render_template('tag_manager.html', all_tags=all_tags)
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+
+    # Modified query to return (Tag, count) pairs
+    tags_query = db.session.query(
+        models.Tag,
+        db.func.count(models.ImageTag.iid).label('image_count')
+    ).outerjoin(
+        models.ImageTag,
+        models.Tag.id == models.ImageTag.tid
+    ).group_by(models.Tag.id)
+
+    # Apply search filter if exists
+    if 'search' in request.args:
+        search_term = f"%{request.args['search']}%"
+        tags_query = tags_query.filter(models.Tag.name.ilike(search_term))
+
+    # Apply sorting
+    sort_by = request.args.get('sort', 'name')
+    if sort_by == 'count':
+        tags_query = tags_query.order_by(db.desc('image_count'))
+    else:
+        tags_query = tags_query.order_by(models.Tag.name)
+
+    # Get paginated results
+    paginated_tags = tags_query.paginate(page=page, per_page=per_page)
+
+    # Convert to dictionary for easier template access
+    tags = [{
+        'tag': tag,
+        'count': count,
+        'samples': tag.get_associated_images(3).all()  # Now calling on Tag instance
+    } for tag, count in paginated_tags.items]
+
+    return render_template('tag_manager.html',
+                           tags=tags,
+                           pagination=paginated_tags,
+                           current_sort=sort_by,
+                           search_term=request.args.get('search', ''))
 
 
 #################################
@@ -217,30 +290,21 @@ def delete_tag(tag_id):
     return jsonify({'message': 'Tag deleted'})
 
 
-@app.route('/api/tags/merge', methods=['POST'])
-def merge_tags():
-    source_ids = request.json.get('source_ids', [])
-    target_id = request.json.get('target_id')
-
-    if not source_ids or not target_id:
-        return jsonify({'error': 'Source and target tags required'}), 400
-
+# Tag merging endpoint
+@app.route('/tags/<int:source_id>/merge_into/<int:target_id>', methods=['POST'])
+def merge_tags(source_id, target_id):
+    source_tag = models.Tag.query.get_or_404(source_id)
     target_tag = models.Tag.query.get_or_404(target_id)
+    source_tag.merge_into(target_tag)
+    return jsonify(success=True)
 
-    # Get all images with source tags
-    for source_id in source_ids:
-        if source_id == target_id:
-            continue
 
-        source_tag = models.Tag.query.get_or_404(source_id)
-        for image in source_tag.images:
-            if target_tag not in image.tags:
-                image.tags.append(target_tag)
-        db.session.delete(source_tag)
-
-    db.session.commit()
-    return jsonify({'message': f'Merged {len(source_ids)} \
-                    tags into {target_tag.name}'})
+# Tag search API
+@app.route('/api/tags/search')
+def tag_search_api():
+    query = request.args.get('q', '')
+    tags = models.Tag.query.filter(models.Tag.name.ilike(f'%{query}%')).limit(10).all()
+    return jsonify([{'id': t.id, 'text': t.name} for t in tags])
 
 
 if __name__ == '__main__':

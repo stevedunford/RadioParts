@@ -5,16 +5,18 @@
 {% block content %}
 <div class="gallery-container">
     <!-- Tag Filter Section -->
-    <div class="tag-filter mb-4 p-3 bg-light rounded">
+    <div class="tag-filter mb-4">
         <h4>Filter by Tag:</h4>
         <div class="d-flex flex-wrap">
-            {% for tag in all_tags %}
+            {% for tag, count in all_tags %}
                 <a href="{{ url_for('gallery', tag=tag.name) }}" 
-                   class="btn btn-sm btn-outline-secondary me-2 mb-2">
-                    {{ tag.name }} ({{ tag.images|length }})
+                   class="btn btn-sm btn-outline-secondary me-2 mb-2 
+                         {{ 'active' if tag.name == current_tag else '' }}">
+                    {{ tag.name }} ({{ count }})
                 </a>
             {% endfor %}
-            <a href="{{ url_for('gallery') }}" class="btn btn-sm btn-outline-primary mb-2">
+            <a href="{{ url_for('gallery') }}" 
+               class="btn btn-sm btn-outline-primary mb-2">
                 Show All
             </a>
         </div>

@@ -91,17 +91,53 @@ body {
     margin-bottom: 5px;
     display: inline-block;
 }
+
+/* Tag suggestions */
+.tag-suggestions {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+/* Highlight matching suggestions */
+.highlight-match {
+    background-color: #fff3cd !important;
+    border-color: #ffc107 !important;
+}
+
+/* Tag counter */
+.tag-counter {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
 .card {
     margin-bottom: 20px;
     height: 100%;
 }
 
+.modal-body {
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 0 !important;
+}
+
+/* Image Container */
+.modal-body > img {
+    width: auto !important;
+    max-height: 70vh !important;
+    margin: 0 auto !important;
+}
+
 /* Makes modal images fill available space */
 #imageModal .modal-body {
     display: flex;
+    flex-direction: column !important;
     justify-content: center;
     align-items: center;
-    padding: 0;
+    padding: 0 !important;
 }
 
 #imageModal img {
@@ -117,10 +153,12 @@ body {
 
 /* Modal tags container */
 .modal-tags {
-    background: #f8f9fa;
-    border-top: 1px solid #dee2e6;
-    padding: 1rem;
-    min-height: 60px; /* Ensure space even when empty */
+    width: 100% !important;
+    order: 2 !important; /* Forces below image */
+    background: #f8f9fa !important;
+    border-top: 1px solid #dee2e6 !important;
+    padding: 1rem !important;
+    margin-top: 0 !important;
 }
 
 /* Individual tags */
@@ -128,7 +166,8 @@ body {
     margin: 0.3rem;
     padding: 0.5rem 0.8rem;
     background: #e9ecef;
-    color: #495057;
+    color: rgb(255, 255, 255);
+    border: 1px solid darkslategray;
     border-radius: 0.25rem;
     display: inline-block;
 }
@@ -141,18 +180,6 @@ body {
 }
 
 .modal-tags .badge {
-    margin: 0.25rem;
-    font-size: 0.9rem;
-    padding: 0.5em 0.75em;
-    display: inline-block;
-}
-
-#modalTags {
-    background-color: rgba(255,0,0,0.1); /* Red tint for visibility */
-    min-height: 50px;
-}
-
-#modalTags:empty::after {
-    content: "DEBUG: No tags loaded";
-    color: red;
+    display: inline-block !important;
+    margin: 0.25rem !important;
 }
