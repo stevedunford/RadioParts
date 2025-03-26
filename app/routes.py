@@ -1,7 +1,9 @@
 from app import app
 from flask import flash, redirect, render_template, request, jsonify, \
                   send_from_directory, url_for
-from flask_sqlalchemy import SQLAlchemy, func, insert
+from werkzeug.utils import secure_filename
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import func, insert
 import os
 # import secrets
 # print(secrets.token_hex(32))
@@ -68,34 +70,54 @@ def gallery():
                            current_tag=tag_filter)
 
 
-@app.route('/uploader')
-def uploader():
-    images = models.Image.query.all()
-    return render_template('upload.html', images=images)
-
-
-@app.route('/upload', methods=['POST'])
+@app.route('/upload', methods=['GET', 'POST'])
 def upload():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file part'}), 400
-
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
-
-    # Save the file
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-    file.save(file_path)
-
-    # Save the image details to the database
-    # with a default empty description
-    image = models.Image(filename=file.filename, description='')
-    db.session.add(image)
-    db.session.commit()
-
-    return jsonify({'message': 'File uploaded successfully',
-                    'filename': file.filename,
-                    'id': image.id}), 200
+    if request.method == 'POST':
+        # Check if files were submitted
+        if 'images' not in request.files:
+            flash('No files selected', 'error')
+            return redirect(request.url)
+            
+        files = request.files.getlist('images')
+        uploaded_files = []
+        
+        for file in files:
+            # Skip if no file selected
+            if file.filename == '':
+                continue
+                
+            # Validate file
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                
+                # Handle duplicate filenames
+                save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                counter = 1
+                while os.path.exists(save_path):
+                    name, ext = os.path.splitext(filename)
+                    filename = f"{name}_{counter}{ext}"
+                    save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    counter += 1
+                
+                # Save file
+                file.save(save_path)
+                
+                # Create database record
+                new_image = models.Image(filename=filename)
+                db.session.add(new_image)
+                uploaded_files.append(filename)
+        
+        if uploaded_files:
+            db.session.commit()
+            flash(f'{len(uploaded_files)} files uploaded successfully', 'success')
+        else:
+            flash('No valid files uploaded', 'warning')
+            
+        return redirect(url_for('upload'))
+    
+    # GET request - show upload page
+    images = models.Image.query.order_by(models.Image.created_at.desc()).all()
+    return render_template('upload.html', images=images)
 
 
 @app.route('/update/<int:image_id>', methods=['POST'])
@@ -185,22 +207,27 @@ def add_tag(image_id):
     )
 
 
-@app.route('/delete/<int:image_id>', methods=['POST'])
-def delete_image(image_id):
-    image = models.Image.query.get(image_id)
-    if not image:
-        return jsonify({'error': 'Image not found'}), 404
-
-    # Delete the file from the filesystem
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], image.name)
-    if os.path.exists(file_path):
-        os.remove(file_path)
-
-    # Delete the image from the database
-    db.session.delete(image)
-    db.session.commit()
-
-    return jsonify({'message': 'File deleted successfully'}), 200
+# Edit Tag Page (GET for form, POST for submission)
+@app.route('/tags/<int:tag_id>/edit', methods=['GET', 'POST'])
+def edit_tag(tag_id):
+    tag = models.Tag.query.get_or_404(tag_id)
+    
+    if request.method == 'POST':
+        new_name = request.form.get('name')
+        
+        # Validation
+        if not new_name:
+            flash('Tag name is required', 'error')
+        elif models.Tag.query.filter(models.Tag.id != tag_id,
+                                     models.Tag.name == new_name).first():
+            flash('Tag name already in use', 'error')
+        else:
+            tag.name = new_name
+            db.session.commit()
+            flash('Tag updated successfully', 'success')
+            return redirect(url_for('tag_manager'))
+        
+    return render_template('edit_tag.html', tag=tag)
 
 
 @app.route('/tag_manager')
@@ -246,9 +273,79 @@ def tag_manager():
                            search_term=request.args.get('search', ''))
 
 
-#################################
-# API Routes for Tag Management #
-#################################
+############################################
+# API Routes for Upload and Tag Management #
+############################################
+
+@app.route('/api/upload', methods=['POST'])
+def api_upload():
+    """AJAX endpoint for file uploads"""
+    if 'images' not in request.files:
+        return jsonify({'error': 'No files selected'}), 400
+        
+    files = request.files.getlist('images')
+    if not files or all(f.filename == '' for f in files):
+        return jsonify({'error': 'No valid files selected'}), 400
+    
+    uploaded_files = []
+    
+    for file in files:
+        if file.filename == '':
+            continue
+            
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            
+            # Handle duplicates
+            counter = 1
+            while os.path.exists(save_path):
+                name, ext = os.path.splitext(filename)
+                filename = f"{name}_{counter}{ext}"
+                save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                counter += 1
+            
+            file.save(save_path)
+            new_image = models.Image(filename=filename)
+            db.session.add(new_image)
+            uploaded_files.append({
+                'filename': filename,
+                'url': url_for('static', filename=f'images/{filename}', _external=True)
+            })
+    
+    if uploaded_files:
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'files': uploaded_files,
+            'message': f'Uploaded {len(uploaded_files)} files'
+        }), 200  # Explicit status code
+    else:
+        return jsonify({'error': 'No valid files processed'}), 400
+
+
+@app.route('/api/images/<int:image_id>', methods=['DELETE'])
+def delete_image(image_id):
+    """Delete an image"""
+    image = models.Image.query.get_or_404(image_id)
+    
+    # Delete file from filesystem
+    try:
+        os.remove(os.path.join(app.config['UPLOAD_FOLDER'], image.filename))
+    except FileNotFoundError:
+        pass  # Already deleted or never existed
+    
+    # Delete from database
+    db.session.delete(image)
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'Image deleted'})
+
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    
 
 @app.route('/api/tags', methods=['POST'])
 def create_tag():

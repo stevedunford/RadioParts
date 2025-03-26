@@ -1,4 +1,5 @@
 from sqlalchemy import func, Index, update
+from datetime import datetime
 from app.routes import db
 
 
@@ -7,6 +8,7 @@ class Image(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     filename = db.Column(db.String(100), nullable=False)
     description = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     tags = db.relationship('Tag',
                            secondary='ImageTag',
                            backref=db.backref('images', lazy='dynamic'))

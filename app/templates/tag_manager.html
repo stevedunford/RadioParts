@@ -1,7 +1,11 @@
+{% extends 'layout.html' %}
+{% block content %}
+
 <!-- Search and Actions Bar -->
 <div class="row mb-4">
     <div class="col-md-6">
         <form class="d-flex">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <input type="text" name="search" class="form-control" 
                    placeholder="Search tags..." value="{{ request.args.get('search', '') }}">
             <button type="submit" class="btn btn-primary ms-2">Search</button>
@@ -48,13 +52,12 @@
                         More
                     </button>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" 
-                               href="{{ url_for('tagged_images', tag_id=tag.id) }}">View All</a></li>
                         <li><button class="dropdown-item merge-tag" 
-                                  data-tag-id="{{ tag.id }}">Merge</button></li>
+                                  data-tag-id="{{ tag_data.tag.id }}">Merge</button></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><form action="{{ url_for('delete_tag', tag_id=tag.id) }}" 
+                        <li><form action="{{ url_for('delete_tag', tag_id=tag_data.tag.id) }}" 
                                   method="POST" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <button type="submit" class="dropdown-item text-danger">Delete</button>
                         </form></li>
                     </ul>
@@ -65,27 +68,47 @@
     </tbody>
 </table>
 
-<!-- Pagination -->
-<nav>
-    <ul class="pagination">
-        {% if tags.has_prev %}
+<!-- Pagination Section -->
+<nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        {% if pagination.has_prev %}
         <li class="page-item">
             <a class="page-link" 
-               href="?page={{ tags.prev_num }}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if search %}&search={{ search }}{% endif %}">Previous</a>
+               href="{{ url_for('tag_manager', page=pagination.prev_num, sort=current_sort, search=search_term) }}">
+                Previous
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link">Previous</span>
         </li>
         {% endif %}
-        
-        {% for num in tags.iter_pages() %}
-        <li class="page-item {% if num == tags.page %}active{% endif %}">
-            <a class="page-link" 
-               href="?page={{ num }}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if search %}&search={{ search }}{% endif %}">{{ num }}</a>
-        </li>
+
+        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page_num %}
+                <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                    <a class="page-link" 
+                       href="{{ url_for('tag_manager', page=page_num, sort=current_sort, search=search_term) }}">
+                        {{ page_num }}
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+            {% endif %}
         {% endfor %}
-        
-        {% if tags.has_next %}
+
+        {% if pagination.has_next %}
         <li class="page-item">
             <a class="page-link" 
-               href="?page={{ tags.next_num }}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if search %}&search={{ search }}{% endif %}">Next</a>
+               href="{{ url_for('tag_manager', page=pagination.next_num, sort=current_sort, search=search_term) }}">
+                Next
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link">Next</span>
         </li>
         {% endif %}
     </ul>
@@ -115,6 +138,9 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
 <script>
 // Merge tag functionality
 document.querySelectorAll('.merge-tag').forEach(btn => {
@@ -139,3 +165,5 @@ document.querySelectorAll('.merge-tag').forEach(btn => {
     });
 });
 </script>
+
+{% endblock %}
