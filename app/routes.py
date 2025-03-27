@@ -12,6 +12,7 @@ import os
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///nzvintageradioparts.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'app/static/images'
+ALLOWED_EXTENSIONS = [".gif", ".png", ".jpg", ".jpeg"]
 app.config['SECRET_KEY'] = '5ef4c1b869eb15c48956292bb37b7115\
                             cac26ba71f5d5be7ce3d9fc16d8a4e23'
 db = SQLAlchemy(app)
@@ -24,11 +25,9 @@ if not os.path.exists(app.config['UPLOAD_FOLDER']):
 import app.models as models  # NOQA
 
 
-# Debugging - check images are being served correctly
-@app.route('/static/images/<path:filename>')
-def serve_static(filename):
-    print(f"Attempting to serve: static/images/{filename}")  # Debug output
-    return send_from_directory('static/images', filename)
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 @app.route('/')
@@ -127,16 +126,27 @@ def update_image(image_id):
     # Update description
     image.description = request.form.get('description', '')
 
-    # Update tags
-    tag_names = [t.strip()
-                 for t in request.form.get('tags', '').split(',')
-                 if t.strip()]
-    image.tags = []
-    for tag_name in tag_names:
-        tag = models.Tag.query.filter_by(name=tag_name).first()
+    # Get new tags from form (comma-separated)
+    new_tag_names = [t.strip() for t in request.form.get('tags', '').split(',') if t.strip()]
+    
+    # Get current tags
+    current_tags = {tag.name.lower(): tag for tag in image.tags}
+    
+    # Process new tags
+    for tag_name in new_tag_names:
+        normalized_name = tag_name.lower()
+        
+        # Skip if tag already exists
+        if normalized_name in current_tags:
+            continue
+            
+        # Find or create tag
+        tag = models.Tag.query.filter(func.lower(models.Tag.name) == normalized_name).first()
         if not tag:
-            tag = models.Tag(name=tag_name)
+            tag = models.Tag(name=tag_name.capitalize())
             db.session.add(tag)
+        
+        # Add to image's tags
         image.tags.append(tag)
 
     db.session.commit()
@@ -144,90 +154,114 @@ def update_image(image_id):
     return redirect(url_for('gallery'))
 
 
-@app.route('/update_description/<int:image_id>', methods=['POST'])
-def update_description(image_id):
-    description = request.json.get('description')
-    if not description:
-        return jsonify({'error': 'Description is required'}), 400
+#@app.route('/update_description/<int:image_id>', methods=['POST'])
+#def update_description(image_id):
+#    description = request.json.get('description')
+#    if not description:
+#        return jsonify({'error': 'Description is required'}), 400
 
-    image = models.Image.query.get(image_id)
-    if not image:
-        return jsonify({'error': 'Image not found'}), 404
+#    image = models.Image.query.get(image_id)
+#    if not image:
+#        return jsonify({'error': 'Image not found'}), 404
 
-    image.description = description
-    db.session.commit()
+#    image.description = description
+#    db.session.commit()
 
-    return jsonify({'message': 'Description updated successfully'}), 200
+#    return jsonify({'message': 'Description updated successfully'}), 200
 
 
 @app.route('/edit/<int:image_id>')
 def edit_image(image_id):
     image = models.Image.query.get_or_404(image_id)
-    all_tags = models.Tag.query.with_entities(models.Tag.name).distinct().all()
-    return render_template('edit_image.html', image=image,
-                           all_tags=[tag[0] for tag in all_tags])
+    # Get full Tag objects instead of just names
+    all_tags = models.Tag.query.all()
+    return render_template('edit_image.html',
+                           image=image,
+                           all_tags=all_tags)
 
 
 @app.route('/add_tag/<int:image_id>', methods=['POST'])
 def add_tag(image_id):
-    data = request.get_json()
-    tag_name = data['tag'].strip().lower()  # Normalize to lowercase
+    # Debugging - print incoming request
+    print("\n=== INCOMING REQUEST ===")
+    print("Headers:", dict(request.headers))
+    try:
+        data = request.get_json()
+        print("Request Data:", data)
+    except:
+        print("Failed to parse JSON")
+        data = None
 
-    # Validate
+    # Validate request
+    if not request.is_json:
+        return jsonify({"error": "Request must be JSON"}), 400
+    
+    if not data or 'tag' not in data:
+        return jsonify({"error": "Missing 'tag' in request"}), 400
+
+    tag_name = data['tag'].strip().lower()
+    if not tag_name:
+        return jsonify({"error": "Tag name cannot be empty"}), 400
     if len(tag_name) > 20:
-        return jsonify(error="Tag too long (max 20 chars)"), 400
+        return jsonify({"error": "Tag too long (max 20 chars)"}), 400
 
-    image = models.Image.query.get_or_404(image_id)
+    try:
+        image = models.Image.query.get_or_404(image_id)
+        print(f"--\n{image}\n--")
+        # Check tag limit
+        if len(image.tags) >= 8:
+            return jsonify({"error": "Maximum 8 tags per image"}), 400
 
-    # Check tag limit
-    if image.tags.count() >= 8:  # Using .count() for many-to-many
-        return jsonify(error="Maximum 8 tags per image"), 400
+        # Find or create tag (case-insensitive)
+        existing_tag = models.Tag.query.filter(
+            func.lower(models.Tag.name) == tag_name
+        ).first()
 
-    # Find or create tag (case-insensitive)
-    existing_tag = models.Tag.query.filter(func.lower(models.Tag.name) == tag_name).first()
+        if existing_tag:
+            if existing_tag in image.tags:
+                return jsonify({"error": f"Tag '{tag_name}' already exists"}), 400
+        else:
+            existing_tag = models.Tag(name=tag_name.capitalize())
+            db.session.add(existing_tag)
+            db.session.flush()  # Get ID before commit
 
-    if existing_tag:
-        # Check if image already has this tag
-        if existing_tag in image.tags:
-            return jsonify(error=f"Tag '{tag_name}' already exists"), 400
-    else:
-        existing_tag = models.Tag(name=tag_name.capitalize())  # Store with capitalization
-        db.session.add(existing_tag)
+        # Add association
+        image.tags.append(existing_tag)
+        db.session.commit()
 
-    # Add association
-    db.session.execute(
-        insert(models.ImageTag).values(iid=image_id, tid=existing_tag.id)
-    )
-    db.session.commit()
+        return jsonify({
+            "success": True,
+            "tag": existing_tag.name,
+            "tag_id": existing_tag.id
+        })
 
-    return jsonify(
-        success=True,
-        tag=existing_tag.name,
-        tag_id=existing_tag.id
-    )
+    except Exception as e:
+        db.session.rollback()
+        print("Error:", str(e))
+        return jsonify({"error": str(e)}), 500
 
 
 # Edit Tag Page (GET for form, POST for submission)
-@app.route('/tags/<int:tag_id>/edit', methods=['GET', 'POST'])
-def edit_tag(tag_id):
-    tag = models.Tag.query.get_or_404(tag_id)
+# @app.route('/tags/<int:tag_id>/edit', methods=['GET', 'POST'])
+# def edit_tag(tag_id):
+#     tag = models.Tag.query.get_or_404(tag_id)
     
-    if request.method == 'POST':
-        new_name = request.form.get('name')
+#     if request.method == 'POST':
+#         new_name = request.form.get('name')
         
-        # Validation
-        if not new_name:
-            flash('Tag name is required', 'error')
-        elif models.Tag.query.filter(models.Tag.id != tag_id,
-                                     models.Tag.name == new_name).first():
-            flash('Tag name already in use', 'error')
-        else:
-            tag.name = new_name
-            db.session.commit()
-            flash('Tag updated successfully', 'success')
-            return redirect(url_for('tag_manager'))
+#         # Validation
+#         if not new_name:
+#             flash('Tag name is required', 'error')
+#         elif models.Tag.query.filter(models.Tag.id != tag_id,
+#                                      models.Tag.name == new_name).first():
+#             flash('Tag name already in use', 'error')
+#         else:
+#             tag.name = new_name
+#             db.session.commit()
+#             flash('Tag updated successfully', 'success')
+#             return redirect(url_for('tag_manager'))
         
-    return render_template('edit_tag.html', tag=tag)
+#     return render_template('edit_tag.html', tag=tag)
 
 
 @app.route('/tag_manager')
@@ -342,41 +376,80 @@ def delete_image(image_id):
     return jsonify({'success': True, 'message': 'Image deleted'})
 
 
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+# @app.route('/api/tags', methods=['POST'])
+# def create_tag():
+#     name = request.json.get('name')
+#     if not name:
+#         return jsonify({'error': 'Tag name is required'}), 400
+
+#     if models.Tag.query.filter_by(name=name).first():
+#         return jsonify({'error': 'Tag already exists'}), 400
+
+#     tag = models.Tag(name=name)
+#     db.session.add(tag)
+#     db.session.commit()
+#     return jsonify({'message': 'Tag created'}), 201
+
+
+# @app.route('/api/tags/<int:tag_id>', methods=['PUT'])
+# def update_tag(tag_id):
+#     tag = models.Tag.query.get_or_404(tag_id)
+#     new_name = request.json.get('name')
+
+#     if not new_name:
+#         return jsonify({'error': 'New name is required'}), 400
+
+#     if models.Tag.query.filter(models.Tag.id != tag_id,
+#                                models.Tag.name == new_name).first():
+#         return jsonify({'error': 'Tag name already in use'}), 400
+
+#     tag.name = new_name
+#     db.session.commit()
+#     return jsonify({'message': 'Tag updated'})
+
+
+@app.route('/api/images/<int:image_id>/tags', methods=['POST'])
+def add_image_tag(image_id):
+    """
+    Add a tag to an image (creates tag if new)
+    POST /api/images/1/tags
+    {
+        "name": "vintage"
+    }
+    """
+    data = request.get_json()
+    if not data or 'name' not in data:
+        return jsonify({"error": "Tag name required"}), 400
+
+    tag_name = data['name'].strip()
+    if not tag_name:
+        return jsonify({"error": "Empty tag name"}), 400
+
+    image = Image.query.get_or_404(image_id)
     
+    # Check if already tagged
+    if any(t.name.lower() == tag_name.lower() for t in image.tags):
+        return jsonify({"error": "Image already has this tag"}), 400
 
-@app.route('/api/tags', methods=['POST'])
-def create_tag():
-    name = request.json.get('name')
-    if not name:
-        return jsonify({'error': 'Tag name is required'}), 400
-
-    if models.Tag.query.filter_by(name=name).first():
-        return jsonify({'error': 'Tag already exists'}), 400
-
-    tag = models.Tag(name=name)
-    db.session.add(tag)
+    # Find or create tag
+    tag = Tag.query.filter(func.lower(Tag.name) == tag_name.lower()).first()
+    is_new = False
+    
+    if not tag:
+        tag = Tag(name=tag_name.capitalize())
+        db.session.add(tag)
+        db.session.flush()  # Get ID before commit
+        is_new = True
+    
+    image.tags.append(tag)
     db.session.commit()
-    return jsonify({'message': 'Tag created'}), 201
 
-
-@app.route('/api/tags/<int:tag_id>', methods=['PUT'])
-def update_tag(tag_id):
-    tag = models.Tag.query.get_or_404(tag_id)
-    new_name = request.json.get('name')
-
-    if not new_name:
-        return jsonify({'error': 'New name is required'}), 400
-
-    if models.Tag.query.filter(models.Tag.id != tag_id,
-                               models.Tag.name == new_name).first():
-        return jsonify({'error': 'Tag name already in use'}), 400
-
-    tag.name = new_name
-    db.session.commit()
-    return jsonify({'message': 'Tag updated'})
+    return jsonify({
+        "success": True,
+        "tag": tag.name,
+        "tag_id": tag.id,
+        "is_new": is_new
+    }), 201 if is_new else 200
 
 
 @app.route('/api/tags/<int:tag_id>', methods=['DELETE'])

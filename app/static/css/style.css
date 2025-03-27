@@ -183,3 +183,15 @@ body {
     display: inline-block !important;
     margin: 0.25rem !important;
 }
+
+/** Used to show when text input is too long **/
+.text-warning {
+    color: orange;
+    font-weight: bold;
+}
+
+/** Grey out selected tags **/
+.tag-suggestion.disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}

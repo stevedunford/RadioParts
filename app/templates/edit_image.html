@@ -1,19 +1,23 @@
 {% extends 'layout.html' %}
-{% block content %}
 
+{% block content %}
 <div class="container py-5">
     <h1 class="mb-4">Edit Image</h1>
     
     <div class="row">
         <div class="col-md-6">
             <img src="{{ url_for('static', filename='images/' + image.filename) }}" 
-                    class="img-fluid mb-3">
+                 class="img-fluid mb-3">
         </div>
         <div class="col-md-6">
             <form method="POST" action="{{ url_for('update_image', image_id=image.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="mb-3">
                     <label class="form-label">Description</label>
-                    <textarea name="description" class="form-control" rows="3">{{ image.description or '' }}</textarea>
+                    <textarea name="description" class="form-control" rows="3" maxlength="500" oninput="countChars()">{{ image.description or '<i>No Description</i>' }}</textarea>
+                    <div class="text-muted text-end">
+                        <span id="charCount">{{ image.description|length if image.description else 0 }}</span>/500
+                    </div>
                 </div>
                 
                 <button type="submit" class="btn btn-primary">Save Changes</button>
@@ -37,7 +41,7 @@
             <span class="badge bg-primary me-2 mb-2">
                 {{ tag.name }}
                 <button type="button" class="btn-close btn-close-white ms-1" 
-                        onclick="removeTag({{ image.id }}, '{{ tag.name }}')"></button>
+                        onclick="removeTag({{ image.id }}, {{ tag.id }})"></button>
             </span>
             {% endfor %}
         </div>
@@ -55,10 +59,10 @@
             <h6>Existing Tags</h6>
             <div class="d-flex flex-wrap gap-2" id="suggestedTags">
                 {% for tag in all_tags %}
-                {% if tag not in image.tags|map(attribute='name') %}
+                {% if tag not in image.tags %}
                 <button type="button" class="btn btn-sm btn-outline-secondary tag-suggestion"
-                        onclick="addTag('{{ image.id }}', '{{ tag }}')">
-                    {{ tag }}
+                        onclick="addTag({{ image.id }}, {{ tag.id }}, '{{ tag.name }}')">
+                    {{ tag.name }}
                 </button>
                 {% endif %}
                 {% endfor %}
@@ -72,135 +76,192 @@
 
 {% block extra_js %}
 <script>
-async function addTag(imageId, tagName) {
-    const currentTags = document.getElementById('currentTags');
-    if (currentTags.querySelectorAll('.badge').length >= 8) {
-        alert("Maximum 8 tags per image");
-        return;
-    }
+// CSRF token for AJAX requests
+const csrfToken = document.querySelector('input[name="csrf_token"]').value;
 
-    try {
-        const response = await fetch(`/add_tag/${imageId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tag: tagName })
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok) {
-            // Add new tag badge
-            const badge = document.createElement('span');
-            badge.className = 'badge bg-primary me-2 mb-2';
-            badge.innerHTML = `${result.tag} <button type="button" 
-                            class="btn-close btn-close-white ms-1" 
-                            onclick="removeTag(${imageId}, ${result.tag_id})"></button>`;
-            currentTags.appendChild(badge);
-            updateTagCount();
-        } else {
-            alert(result.error);
-        }
-    } catch (error) {
-        console.error("Error:", error);
-    }
-}
-
-// Tag Management
-function updateTagCount(imageId) {
-    const count = document.querySelectorAll(`#currentTags .badge`).length;
+// Update tag count display
+function updateTagCount() {
+    const count = document.querySelectorAll('#currentTags .badge').length;
     document.getElementById('currentTagCount').textContent = count;
     
-    // Disable input if limit reached
     if (count >= 8) {
         document.getElementById('newTagInput').disabled = true;
         document.getElementById('addTagBtn').disabled = true;
         document.getElementById('newTagInput').placeholder = "Maximum tags reached";
+    } else {
+        document.getElementById('newTagInput').disabled = false;
+        document.getElementById('addTagBtn').disabled = false;
+        document.getElementById('newTagInput').placeholder = "New tag (max 20 chars)";
     }
 }
 
-// Add new tag
+// Add tag from input
 document.getElementById('addTagBtn').addEventListener('click', async function() {
-    const tag = document.getElementById('newTagInput').value.trim();
-    const imageId = {{ image.id|tojson }};
+    const tagName = document.getElementById('newTagInput').value.trim();
+    const imageId = {{ image.id }};
     
-    if (!tag) return;
-    if (tag.length > 20) {
+    if (!tagName) return;
+    if (tagName.length > 20) {
         alert("Tag must be 20 characters or less");
         return;
     }
     
-    await addTag(imageId, tag);
+    await addNewTag(imageId, tagName);
     document.getElementById('newTagInput').value = '';
 });
 
-// Typeahead suggestions
-document.getElementById('newTagInput').addEventListener('input', function() {
-    const search = this.value.toLowerCase();
-    const buttons = document.querySelectorAll('#suggestedTags button');
-    
-    buttons.forEach(btn => {
-        const match = btn.textContent.toLowerCase().includes(search);
-        btn.style.display = match ? 'inline-block' : 'none';
-    });
-});
-
-// Helper functions
-async function addTag(imageId, tagName) {
-    const currentTags = document.getElementById('currentTags');
-    const tagCount = currentTags.querySelectorAll('.badge').length;
-    
-    if (tagCount >= 8) {
-        alert("Maximum 8 tags per image");
-        return;
-    }
-    
+// Add existing tag
+async function addTag(imageId, tagId, tagName) {
     try {
         const response = await fetch(`/add_tag/${imageId}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',  // Explicitly ask for JSON
+                'X-CSRF-Token': csrfToken
+            },
             body: JSON.stringify({ tag: tagName })
         });
-        
-        if (response.ok) {
-            const badge = document.createElement('span');
-            badge.className = 'badge bg-primary me-2 mb-2';
-            badge.innerHTML = `${tagName} <button type="button" class="btn-close btn-close-white ms-1" 
-                             onclick="removeTag(${imageId}, '${tagName.replace("'", "\\'")}')"></button>`;
-            currentTags.appendChild(badge);
-            updateTagCount(imageId);
-        } else {
-            alert(await response.text());
+
+        // First check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            throw new Error(`Expected JSON, got: ${text.slice(0, 100)}...`);
         }
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || `Server error: ${response.status}`);
+        }
+        
+        addTagToUI(data.tag_id, data.tag);
     } catch (error) {
-        console.error("Error adding tag:", error);
+        console.error('Add tag failed:', error);
+        alert(`Error: ${error.message}`);
     }
 }
 
-// Fuzzy matching for suggestions
-function findSimilarTags(input) {
-    const existingTags = [...document.querySelectorAll('#existingTags button')]
-        .map(btn => btn.dataset.tag.toLowerCase());
-    
-    return existingTags.filter(tag => 
-        tag.includes(input.toLowerCase()) || 
-        similarity(tag, input.toLowerCase()) > 0.7
-    );
+
+// Add new tag (creates tag first)
+async function addNewTag(imageId, tagName) {
+    try {
+        console.log("Attempting to add tag:", tagName);
+        
+        const response = await fetch(`/add_tag/${imageId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify({ tag: tagName })
+        });
+
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            throw new Error(`Server returned: ${text}`);
+        }
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || "Failed to add tag");
+        }
+        
+        console.log("Tag added successfully:", data);
+        addTagToUI(data.tag_id, data.tag);
+    } catch (error) {
+        console.error("Error adding tag:", error);
+        alert(`Error: ${error.message}`);
+    }
 }
 
-// Simple similarity algorithm (0-1 scale)
-function similarity(s1, s2) {
-    const longer = s1.length > s2.length ? s1 : s2;
-    const shorter = s1 === longer ? s2 : s1;
-    return longer.includes(shorter) ? 1 : 0;
+// Remove tag
+async function removeTag(imageId, tagId) {
+    if (!confirm("Remove this tag?")) return;
+    
+    try {
+        const response = await fetch(`/api/tags/${tagId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-Token': csrfToken
+            }
+        });
+        
+        if (response.ok) {
+            // Remove from current tags
+            document.querySelector(`#currentTags button[onclick*="${tagId}"]`).closest('.badge').remove();
+            
+            // Re-enable in suggestions
+            const tagName = document.querySelector(`#currentTags button[onclick*="${tagId}"]`)?.closest('.badge')?.textContent.trim();
+            if (tagName) {
+                const suggestions = document.getElementById('suggestedTags');
+                const buttons = suggestions.querySelectorAll('button');
+                buttons.forEach(btn => {
+                    if (btn.textContent.trim() === tagName) {
+                        btn.disabled = false;
+                        btn.classList.remove('disabled', 'text-muted');
+                        btn.classList.add('btn-outline-secondary');
+                    }
+                });
+            }
+            
+            updateTagCount();
+        } else {
+            const error = await response.json();
+            alert(error.message || "Failed to remove tag");
+        }
+    } catch (error) {
+        console.error("Error removing tag:", error);
+        alert("Network error");
+    }
 }
 
-// Auto-suggest while typing
-document.getElementById('newTagInput').addEventListener('input', function(e) {
-    const input = e.target.value.trim();
-    if (input.length < 2) return;
+// Add tag to UI
+function addTagToUI(tagId, tagName) {
+    // Add to current tags
+    const currentTags = document.getElementById('currentTags');
+    const badge = document.createElement('span');
+    badge.className = 'badge bg-primary me-2 mb-2';
+    badge.innerHTML = `${tagName} <button type="button" class="btn-close btn-close-white ms-1" 
+                     onclick="removeTag(${image.id}, ${tagId})"></button>`;
+    currentTags.appendChild(badge);
     
-    const matches = findSimilarTags(input);
-    highlightSuggestions(matches);
-});
+    // Remove from suggestions
+    const suggestions = document.getElementById('suggestedTags');
+    const button = suggestions.querySelector(`button[onclick*="${tagId}"]`);
+    if (button) {
+        button.disabled = true;
+        button.classList.add('disabled');
+        button.classList.remove('btn-outline-secondary');
+        button.classList.add('text-muted');
+    }
+    
+    updateTagCount();
+}
+
+// Initialize tag count
+updateTagCount();
+
+function countChars() {
+    const textarea = document.querySelector('textarea[name="description"]');
+    const counter = document.getElementById('charCount');
+    counter.textContent = textarea.value.length;
+    
+    // Optional: Add warning at 400 characters
+    if (textarea.value.length >= 400) {
+        counter.classList.add('text-warning');
+    } else {
+        counter.classList.remove('text-warning');
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', countChars);
+
 </script>
 {% endblock %}
