@@ -1,0 +1,169 @@
+{% extends 'layout.html' %}
+{% block content %}
+
+<!-- Search and Actions Bar -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <form class="d-flex">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="text" name="search" class="form-control" 
+                   placeholder="Search tags..." value="{{ request.args.get('search', '') }}">
+            <button type="submit" class="btn btn-primary ms-2">Search</button>
+        </form>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{{ url_for('create_tag') }}" class="btn btn-success">Create New Tag</a>
+    </div>
+</div>
+
+<!-- Tags Table -->
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>
+                <a href="?sort=name{% if request.args.get('search') %}&search={{ request.args.search }}{% endif %}">
+                    Tag Name {% if sort_by == 'name' %}<i class="bi bi-arrow-down"></i>{% endif %}
+                </a>
+            </th>
+            <th>
+                <a href="?sort=count{% if request.args.get('search') %}&search={{ request.args.search }}{% endif %}">
+                    Images {% if sort_by == 'count' %}<i class="bi bi-arrow-down"></i>{% endif %}
+                </a>
+            </th>
+            <th>Sample Images</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for tag_data in tags %}
+        <td>{{ tag_data.tag.name }}</td>
+        <td>{{ tag_data.count }}</td>
+        <td>
+            {% for image in tag_data.samples %}
+            <span class="badge bg-light text-dark">{{ image.filename }}</span>
+            {% endfor %}
+        </td>
+            <td>
+                <div class="btn-group">
+                    <a href="{{ url_for('edit_tag', tag_id=tag_data.tag.id) }}" 
+                       class="btn btn-sm btn-outline-primary">Edit</a>
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                            type="button" data-bs-toggle="dropdown">
+                        More
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><button class="dropdown-item merge-tag" 
+                                  data-tag-id="{{ tag_data.tag.id }}">Merge</button></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><form action="{{ url_for('delete_tag', tag_id=tag_data.tag.id) }}" 
+                                  method="POST" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="dropdown-item text-danger">Delete</button>
+                        </form></li>
+                    </ul>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Pagination Section -->
+<nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        {% if pagination.has_prev %}
+        <li class="page-item">
+            <a class="page-link" 
+               href="{{ url_for('tag_manager', page=pagination.prev_num, sort=current_sort, search=search_term) }}">
+                Previous
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link">Previous</span>
+        </li>
+        {% endif %}
+
+        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page_num %}
+                <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                    <a class="page-link" 
+                       href="{{ url_for('tag_manager', page=page_num, sort=current_sort, search=search_term) }}">
+                        {{ page_num }}
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if pagination.has_next %}
+        <li class="page-item">
+            <a class="page-link" 
+               href="{{ url_for('tag_manager', page=pagination.next_num, sort=current_sort, search=search_term) }}">
+                Next
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link">Next</span>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+
+<!-- Merge Tag Modal -->
+<div class="modal fade" id="mergeTagModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Merge Tags</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Merge <strong id="sourceTagName"></strong> into:</p>
+                <select class="form-select" id="targetTagSelect">
+                    {% for tag in all_tags %}
+                    <option value="{{ tag.id }}">{{ tag.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmMerge">Merge</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Merge tag functionality
+document.querySelectorAll('.merge-tag').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const sourceTagId = this.dataset.tagId;
+        const sourceTagName = this.closest('tr').querySelector('td:first-child').textContent;
+        
+        document.getElementById('sourceTagName').textContent = sourceTagName;
+        const modal = new bootstrap.Modal('#mergeTagModal');
+        
+        document.getElementById('confirmMerge').onclick = function() {
+            const targetTagId = document.getElementById('targetTagSelect').value;
+            fetch(`/tags/${sourceTagId}/merge_into/${targetTagId}`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+            }).then(response => {
+                if (response.ok) location.reload();
+            });
+        };
+        
+        modal.show();
+    });
+});
+</script>
+
+{% endblock %}
