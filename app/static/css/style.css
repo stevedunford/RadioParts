@@ -82,21 +82,135 @@ h1 {
     color: var(--secondary);
 }
 
-.tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin: 1rem 0;
+/* Tag Container Styles */
+.tag-management {
+    margin-top: 2rem;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.tag {
-    background: var(--accent);
-    color: white;
-    padding: 0.3rem 0.8rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
+/* Current Tags Styling */
+.current-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
 }
+
+.current-tags .tag {
+    background: #d4af37; /* Gold */
+    color: #2a2a2a;
+    padding: 0.4rem 0.8rem;
+    border-radius: 16px;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Available Tags Styling */
+.available-tags {
+    margin-top: 1.5rem;
+}
+
+.tags-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin: 0.8rem 0;
+}
+
+.available-tag {
+    background: #5a4a42; /* Muted brown */
+    color: #e6e6e6;
+    padding: 0.4rem 0.8rem;
+    border-radius: 16px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.available-tag:hover {
+    background: #d4af37; /* Gold on hover */
+    color: #2a2a2a;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Remove Tag Button (×) */
+.remove-tag {
+    background: none;
+    border: none;
+    color: #2a2a2a;
+    margin-left: 0.4rem;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0 0.2rem;
+    font-size: 1rem;
+}
+
+.remove-tag:hover {
+    color: #b71c1c; /* Dark red */
+}
+
+/* Add Tag Section */
+.add-tag {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+/* Add Tag Input Styling */
+.add-tag input {
+    flex-grow: 1;
+    padding: 0.5rem;
+    border: 1px solid #d4af37;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.9); /* Light background */
+    color: #2a2a2a; /* Dark text */
+    font-family: inherit;
+    font-size: 0.9rem;
+}
+
+/* Input focus state */
+.add-tag input:focus {
+    outline: none;
+    border-color: #f1c40f;
+    box-shadow: 0 0 0 2px rgba(241, 196, 15, 0.3);
+}
+
+/* Placeholder text color */
+.add-tag input::placeholder {
+    color: #666;
+    opacity: 1;
+}
+
+/* Add button active state */
+#add-tag-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.add-tag button {
+    background: #d4af37;
+    color: #2a2a2a;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.add-tag button:hover {
+    background: #f1c40f;
+    transform: translateY(-2px);
+}
+
+
+/* Button Style */
 
 .edit-btn {
     display: inline-block;
@@ -195,17 +309,6 @@ footer {
     color: var(--secondary);
     margin-left: 0.3rem;
     text-decoration: none;
-}
-
-.add-tag {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 1rem;
-}
-
-.add-tag input {
-    flex-grow: 1;
-    padding: 0.5rem;
 }
 
 .form-actions {

@@ -1,7 +1,31 @@
 from flask import Blueprint, jsonify, request
-from ..models import db, Tag
+from ..models import db, Tag, ImageTag
 
-bp = Blueprint('tags', __name__, url_prefix='/api/tags')
+bp = Blueprint('tags', __name__, url_prefix='/tags')
+
+
+@bp.route('/tags/create', methods=['POST'])
+def create_tag():
+    data = request.get_json()
+    tag = Tag.query.filter_by(name=data['name']).first()
+
+    if not tag:
+        tag = Tag(name=data['name'])
+        db.session.add(tag)
+        db.session.commit()
+
+    # Associate with image if not already
+    association = ImageTag.query.filter_by(
+        iid=data['image_id'],
+        tid=tag.id
+    ).first()
+
+    if not association:
+        association = ImageTag(iid=data['image_id'], tid=tag.id)
+        db.session.add(association)
+        db.session.commit()
+
+    return jsonify({'status': 'success', 'tag_id': tag.id})
 
 
 @bp.route('', methods=['GET'])

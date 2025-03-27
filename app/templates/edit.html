@@ -1,0 +1,214 @@
+{% extends "layout.html" %}
+
+{% block title %}Edit {{ image.filename }}{% endblock %}
+
+{% block content %}
+<div class="edit-container">
+    <h2>Edit Image Details</h2>
+    
+    <div class="image-preview">
+        <img src="{{ url_for('static', filename='images/' + image.filename) }}" 
+             alt="{{ image.description or 'Image for editing' }}">
+    </div>
+
+    <!-- Main Form (Description Only) -->
+    <form method="POST" action="{{ url_for('images.update_image', image_id=image.id) }}">
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" 
+                      maxlength="500">{{ image.description or '' }}</textarea>
+            <div class="char-count"><span id="desc-count">{{ image.description|length if image.description else 0 }}</span>/500</div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-save">Save Changes</button>
+            <a href="{{ url_for('images.gallery') }}" class="btn-cancel">Cancel</a>
+        </div>
+    </form>
+
+    <!-- Tag Management (Separate from Main Form) -->
+    <div class="tag-management">
+        <h3>Tags</h3>
+        <div class="current-tags">
+            {% for tag in image.tags %}
+            <span class="tag">
+                {{ tag.name }}
+                <form action="{{ url_for('images.remove_tag', image_id=image.id, tag_id=tag.id) }}" 
+                    method="POST" 
+                    class="remove-tag-form"
+                    onsubmit="removeTag(event, {{ image.id }}, {{ tag.id }})">
+                    <button type="submit" class="remove-tag">×</button>
+                </form>
+            </span>
+            {% endfor %}
+        </div>
+            
+        <div class="available-tags">
+            <h4>Available Tags</h4>
+            <div class="tags-list">
+                {% for tag in all_tags %}
+                    {% if tag not in image.tags %}
+                    <span class="tag available-tag" 
+                        onclick="addTag({{ image.id }}, {{ tag.id }}, '{{ tag.name }}')">
+                        {{ tag.name }}
+                    </span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="add-tag">
+            <input type="text" id="new-tag" placeholder="Add new tag">
+            <button type="button" id="add-tag-btn">Add</button>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+// Character count for description
+document.getElementById('description').addEventListener('input', function() {
+    document.getElementById('desc-count').textContent = this.value.length;
+});
+
+// Add tag functionality
+document.getElementById('add-tag-btn').addEventListener('click', async function() {
+    const input = document.getElementById('new-tag');
+    const tagName = input.value.trim();
+
+    if (!tagName) {
+        alert("Please enter a tag name");
+        return;
+    }
+
+    try {
+        const response = await fetch(`/{{ image.id }}/tags`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                name: tagName
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "Failed to add tag");
+        }
+
+        const result = await response.json();
+        console.log("Tag added:", result);
+        
+        // Clear input and refresh display
+        input.value = '';
+        
+        // Refresh available tags
+        const tagsResponse = await fetch(`/{{ image.id }}/tags/available`);
+        const availableTags = await tagsResponse.json();
+        
+        const tagsList = document.querySelector('.tags-list');
+        tagsList.innerHTML = '';
+        
+        availableTags.forEach(tag => {
+            const tagElement = document.createElement('span');
+            tagElement.className = 'tag available-tag';
+            tagElement.textContent = tag.name;
+            tagElement.onclick = () => addTag({{ image.id }}, tag.id, tag.name);
+            tagsList.appendChild(tagElement);
+        });
+
+        // Refresh current tags
+        const currentTagsResponse = await fetch(`/{{ image.id }}/tags`);
+        const currentTags = await currentTagsResponse.json();
+        
+        const currentTagsContainer = document.querySelector('.current-tags');
+        currentTagsContainer.innerHTML = '';
+        currentTags.forEach(tag => {
+            const tagElement = document.createElement('span');
+            tagElement.className = 'tag';
+            tagElement.innerHTML = `
+                ${tag.name}
+                <form action="/images/{{ image.id }}/tags/${tag.id}/remove" 
+                      method="POST" 
+                      class="remove-tag-form"
+                      onsubmit="removeTag(event, {{ image.id }}, ${tag.id})">
+                    <button type="submit" class="remove-tag">×</button>
+                </form>
+            `;
+            currentTagsContainer.appendChild(tagElement);
+        });
+
+    } catch (error) {
+        console.error("Add tag error:", error);
+        alert(`Error adding tag: ${error.message}`);
+    }
+});
+
+async function removeTag(event, imageId, tagId) {
+    event.preventDefault();
+    const form = event.target;
+    const tagElement = form.closest('.tag');
+
+    try {
+        const response = await fetch(form.action, {
+            method: 'POST',
+            headers: { 'Accept': 'application/json' }
+        });
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            // Get tag name before removing
+            const tagName = tagElement.childNodes[0].textContent.trim();
+            
+            // Remove from current tags
+            tagElement.remove();
+            
+            // Add to available tags
+            const tagsList = document.querySelector('.tags-list');
+            const newTag = document.createElement('span');
+            newTag.className = 'tag available-tag';
+            newTag.textContent = tagName;
+            newTag.onclick = () => addTag(imageId, tagId, tagName);
+            tagsList.appendChild(newTag);
+        }
+    } catch (error) {
+        console.error('Error removing tag:', error);
+    }
+}
+
+async function addTag(imageId, tagId, tagName) {
+    try {
+        const response = await fetch(`/${imageId}/tags/${tagId}/add`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            // Remove from available tags
+            document.querySelector(`.available-tag[onclick*="${tagId}"]`).remove();
+            
+            // Add to current tags
+            const currentTags = document.querySelector('.current-tags');
+            const newTag = document.createElement('span');
+            newTag.className = 'tag';
+            newTag.innerHTML = `
+                ${tagName}
+                <form action="/${imageId}/tags/${tagId}/remove" 
+                      method="POST" 
+                      class="remove-tag-form"
+                      onsubmit="removeTag(event, ${imageId}, ${tagId})">
+                    <button type="submit" class="remove-tag">×</button>
+                </form>
+            `;
+            currentTags.appendChild(newTag);
+        }
+    } catch (error) {
+        console.error('Error adding tag:', error);
+    }
+}
+</script>
+{% endblock %}
+{% endblock %}

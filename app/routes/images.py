@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 import os
 
 
-bp = Blueprint('images', __name__, url_prefix='/api/images')
+bp = Blueprint('images', __name__)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
@@ -38,15 +38,17 @@ def gallery():
     return render_template('gallery.html', images=images)
 
 
-@bp.route('/<int:image_id>/edit', methods=['GET'])
+@bp.route('/<int:image_id>/edit')
 def edit_image(image_id):
-    image = Image.query.options(
-        db.joinedload(Image.tags)
-    ).get_or_404(image_id)
-    return render_template('edit_image.html', image=image)
+    image = Image.query.get_or_404(image_id)
+    all_tags = Tag.query.order_by(Tag.name).all()  # Get ALL tags from database
+    return render_template('edit.html', 
+                         image=image,
+                         image_tags=image.tags,  # Just the tags on this image
+                         all_tags=all_tags)      # All possible tags
 
 
-@bp.route('', methods=['GET'])
+@bp.route('/all_images', methods=['GET'])
 def get_images():
     """Get all images with their tags"""
     images = Image.query.options(db.joinedload(Image.tags)).all()
@@ -59,7 +61,7 @@ def get_images():
         'url': f"/static/images/{img.filename}"
     } for img in images])
 
-@bp.route('', methods=['POST'])
+@bp.route('/upload_images', methods=['POST'])
 def upload_image():
     """Handle single or multiple image uploads"""
     if 'files' not in request.files:
@@ -99,6 +101,7 @@ def upload_image():
         db.session.commit()
         return jsonify(uploads), 201
     return jsonify(error="No valid files processed"), 400
+
 
 @bp.route('/<int:image_id>', methods=['GET'])
 def get_image(image_id):
@@ -142,6 +145,7 @@ def delete_image(image_id):
         db.session.rollback()
         return jsonify(error=str(e)), 500
 
+
 @bp.route('/<int:image_id>/tags', methods=['GET'])
 def get_image_tags(image_id):
     """Get tags for a specific image"""
@@ -150,6 +154,7 @@ def get_image_tags(image_id):
         'id': tag.id,
         'name': tag.name
     } for tag in image.tags])
+
 
 @bp.route('/<int:image_id>/tags', methods=['POST'])
 def add_image_tag(image_id):
@@ -192,6 +197,17 @@ def add_image_tag(image_id):
         'is_new': is_new
     }), 201 if is_new else 200
 
+
+@bp.route('/<int:image_id>/tags/<int:tag_id>/add', methods=['POST'])
+def add_tag(image_id, tag_id):
+    # Check if association already exists
+    if not db.session.query(ImageTag).filter_by(iid=image_id, tid=tag_id).first():
+        association = ImageTag(iid=image_id, tid=tag_id)
+        db.session.add(association)
+        db.session.commit()
+    return jsonify({'status': 'success'})
+
+
 @bp.route('/<int:image_id>/tags/<int:tag_id>/remove', methods=['POST'])
 def remove_tag(image_id, tag_id):
     association = db.session.query(ImageTag).filter_by(
@@ -200,3 +216,11 @@ def remove_tag(image_id, tag_id):
     db.session.delete(association)
     db.session.commit()
     return jsonify({'status': 'success'})
+
+
+@bp.route('/images/<int:image_id>/tags/available')
+def available_tags(image_id):
+    image = Image.query.get_or_404(image_id)
+    all_tags = Tag.query.order_by(Tag.name).all()
+    available = [tag for tag in all_tags if tag not in image.tags]
+    return jsonify([{'id': tag.id, 'name': tag.name} for tag in available])
