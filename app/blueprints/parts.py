@@ -1,11 +1,15 @@
 from flask import Blueprint, flash, redirect, request, jsonify, current_app, render_template, url_for
 from werkzeug.utils import secure_filename
-from ..models import db, Image, Tag, ImageTag
+from ..models import db, Image, Tag
 from sqlalchemy import func
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 import os
 
+
+#
+# This file contains the logic for parts, images and management
+#
 
 bp = Blueprint('images', __name__)
 

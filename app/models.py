@@ -1,20 +1,113 @@
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func, Index, update
-from datetime import datetime, timezone  # Added timezone import
+from datetime import datetime, timezone
+from slugify import slugify  # Requires python-slugify package
 
 
 db = SQLAlchemy()
+
+
+# Association tables (unchanged)
+part_tags = db.Table('part_tags',
+    db.Column('part_id', db.Integer, db.ForeignKey('Part.id'), primary_key=True),
+    db.Column('tag_id', db.Integer, db.ForeignKey('Tag.id'), primary_key=True)
+)
+
+image_tags = db.Table('image_tags',
+    db.Column('image_id', db.Integer, db.ForeignKey('Image.id'), primary_key=True),
+    db.Column('tag_id', db.Integer, db.ForeignKey('Tag.id'), primary_key=True)
+)
+
+
+class Brand(db.Model):
+    """Radio manufacturers"""
+    __tablename__ = 'Brand'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)  # "Philips"
+    alias = db.Column(db.String(50), unique=True)  # "philips"
+    description = db.Column(db.Text(500))
+    logo_filename = db.Column(db.String(100))
+    website = db.Column(db.String(200))
+
+    # Automatically generate alias/slug on creation
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if not self.alias:
+            self.alias = slugify(self.name)
+
+    # Relationships
+    parts = db.relationship('Part', back_populates='brand')
+
+
+class Location(db.Model):
+    """Physical storage locations (libraries)"""
+    __tablename__ = 'Location'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True)
+    librarian_email = db.Column(db.String(120))
+    address = db.Column(db.String(120))
+
+    # Relationships
+    parts = db.relationship('Part', back_populates='location')
+    images = db.relationship('Image', back_populates='location')
+
+
+class Part(db.Model):
+    """Vintage radio components"""
+    __tablename__ = 'Part'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)  # "Dial", "Valve"
+    description = db.Column(db.String(1024))
+    part_number = db.Column(db.String(30))
+    quantity = db.Column(db.Integer, default=1)
+    box = db.Column(db.String(20))            # "Box 3A"
+    position = db.Column(db.String(50))       # "Bottom shelf"
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    # Relationships
+    brand_id = db.Column(db.Integer, db.ForeignKey('Brand.id'))
+    brand = db.relationship('Brand', back_populates='parts')
+    location_id = db.Column(db.Integer, db.ForeignKey('Location.id'))
+    location = db.relationship('Location', back_populates='parts')
+    images = db.relationship('Image', back_populates='part')
+    tags = db.relationship('Tag', secondary=part_tags, back_populates='parts')
+    part_type_id = db.Column(db.Integer, db.ForeignKey('PartType.id'))
+    part_type = db.relationship('PartType')
+
+
+class PartType(db.Model):
+    """Broad categories for radio parts (Tubes, Capacitors, etc.)"""
+    __tablename__ = 'PartType'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)  # "Tube"
+    description = db.Column(db.String(1024))  # "Vacuum tubes/valves for amplification"
+
+    # Automatically generate slug for URLs
+    slug = db.Column(db.String(50), unique=True)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if not self.slug:
+            self.slug = slugify(self.name)
+    
+
+class PartRequest(db.Model):
+    __tablename__ = 'PartRequest'
+    id = db.Column(db.Integer, primary_key=True)
+    part_id = db.Column(db.Integer, db.ForeignKey('Part.id'))
+    requester_email = db.Column(db.String(120))
+    notes = db.Column(db.String(1024))                # "Need for 1947 Philips restoration"
+    status = db.Column(db.String(20))         # "Pending", "Fulfilled"
 
 
 class Image(db.Model):
     __tablename__ = 'Image'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     filename = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.String(255))
+    description = db.Column(db.String(500))
     created_at = db.Column(db.DateTime,
                            default=lambda: datetime.now(timezone.utc))
     tags = db.relationship('Tag',
-                           secondary='ImageTag',
+                           secondary='image_tags',
                            backref=db.backref('images', lazy='dynamic'))
 
     def to_dict(self):
@@ -31,43 +124,4 @@ class Tag(db.Model):
     __tablename__ = 'Tag'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
-
-    # Case-insensitive index
-    __table_args__ = (
-        Index('idx_tag_name_lower', func.lower(name)),
-    )
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'name': self.name,
-            'image_count': self.image_count
-        }
-
-    @property
-    def image_count(self):
-        """Get count of associated images without loading them all"""
-        return db.session.query(func.count(ImageTag.iid))\
-            .filter_by(tid=self.id).scalar()
-
-    def get_associated_images(self, limit=None):
-        """Get query for associated images with optional limit"""
-        query = Image.query.join(ImageTag).filter(ImageTag.tid == self.id)
-        return query.limit(limit) if limit else query
-
-    def merge_into(self, target_tag):
-        """Merge this tag into another tag"""
-        # Update all ImageTag associations
-        db.session.execute(
-            update(ImageTag)
-            .where(ImageTag.tid == self.id)
-            .values(tid=target_tag.id)
-        )
-        db.session.delete(self)
-        db.session.commit()
-
-
-class ImageTag(db.Model):
-    __tablename__ = 'ImageTag'
-    iid = db.Column(db.Integer, db.ForeignKey('Image.id'), primary_key=True)
-    tid = db.Column(db.Integer, db.ForeignKey('Tag.id'), primary_key=True)
+    description = db.Column(db.String(255))

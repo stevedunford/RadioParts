@@ -9,15 +9,15 @@ def create_app():
     app.config.from_mapping(
         SQLALCHEMY_DATABASE_URI='sqlite:///nzvintageradioparts.db',
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
-        SECRET_KEY='dc3ee6c47e36f8677178cbe134f32087d3a6effe5b8fd8ae4363cb74cd1cfeba'
+        SECRET_KEY='dc3ee6c47e36f1177178cbe134f3deadbeefeffe5b8fd8ae4363cb7acd1cfeba'
     )
 
     # Initialize extensions
     db.init_app(app)
 
     # Import and register blueprints HERE (after app creation)
-    from .routes.images import bp as images_bp
-    from .routes.tags import bp as tags_bp
+    from .blueprints.parts import bp as images_bp
+    from .blueprints.tags import bp as tags_bp
 
     # Main site routes
     app.register_blueprint(images_bp)  # Handles root path

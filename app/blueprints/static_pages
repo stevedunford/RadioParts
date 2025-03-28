@@ -1,0 +1,11 @@
+@bp.route('/parts')
+def browse():
+    """Filter parts by brand/type/location"""
+    parts = Part.query.filter_by(...).all()
+    return render_template('parts/browse.html', parts=parts)
+
+@bp.route('/part/<int:part_id>')
+def detail(part_id):
+    """Show part details + request form"""
+    part = Part.query.get_or_404(part_id)
+    return render_template('parts/detail.html', part=part)

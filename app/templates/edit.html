@@ -12,7 +12,7 @@
     </div>
 
     <!-- Main Form (Description Only) -->
-    <form method="POST" action="{{ url_for('images.update_image', image_id=image.id) }}">
+    <form method="POST" action="{{ url_for('parts.update_image', image_id=image.id) }}">
         <div class="form-group">
             <label for="description">Description</label>
             <textarea id="description" name="description" 
@@ -22,7 +22,7 @@
 
         <div class="form-actions">
             <button type="submit" class="btn-save">Save Changes</button>
-            <a href="{{ url_for('images.gallery') }}" class="btn-cancel">Cancel</a>
+            <a href="{{ url_for('parts.gallery') }}" class="btn-cancel">Cancel</a>
         </div>
     </form>
 
@@ -33,7 +33,7 @@
             {% for tag in image.tags %}
             <span class="tag">
                 {{ tag.name }}
-                <form action="{{ url_for('images.remove_tag', image_id=image.id, tag_id=tag.id) }}" 
+                <form action="{{ url_for('parts.remove_tag', image_id=image.id, tag_id=tag.id) }}" 
                     method="POST" 
                     class="remove-tag-form"
                     onsubmit="removeTag(event, {{ image.id }}, {{ tag.id }})">

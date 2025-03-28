@@ -1,10 +1,10 @@
 from flask import Blueprint, jsonify, request
-from ..models import db, Tag, ImageTag
+from ..models import db, Tag
 
 bp = Blueprint('tags', __name__, url_prefix='/tags')
 
 
-@bp.route('/tags/create', methods=['POST'])
+@bp.route('/create', methods=['POST'])
 def create_tag():
     data = request.get_json()
     tag = Tag.query.filter_by(name=data['name']).first()
@@ -28,7 +28,7 @@ def create_tag():
     return jsonify({'status': 'success', 'tag_id': tag.id})
 
 
-@bp.route('', methods=['GET'])
+@bp.route('/', methods=['GET'])
 def get_tags():
     """List all tags"""
     tags = Tag.query.all()
