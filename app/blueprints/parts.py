@@ -2,8 +2,8 @@ from flask import Blueprint, flash, redirect, request, jsonify, current_app, \
                   render_template, url_for, abort
 from werkzeug.utils import secure_filename
 from ..utils import helpers
-from ..models import db, Part, Image, PartType, Brand, Location, Tag
-from sqlalchemy import func
+from ..models import db, Part, Image, PartType, Brand, Location, Tag, part_tags
+from sqlalchemy import func, or_
 from datetime import datetime
 import os
 from pathlib import Path
@@ -51,30 +51,81 @@ def parts_by_brand(brand_id):
         db.joinedload(Part.brand),
         db.joinedload(Part.part_type)
     ).filter_by(brand_id=brand_id).all()
-    
+
     return render_template('brand_parts.html',
                            brand=brand,
                            parts=parts)
-    
 
-@bp.route('/')
+
 @bp.route('/gallery')
 def gallery():
-    brand_id = request.args.get('brand')
-    type_id = request.args.get('type')
-    tag_name = request.args.get('tag')
-    
-    query = Part.query
-    
+    # Initialize query with eager loading
+    query = Part.query.options(
+        db.joinedload(Part.images),
+        db.joinedload(Part.brand),
+        db.joinedload(Part.part_type),
+        db.joinedload(Part.tags)
+    )
+
+    # Filter parameters
+    brand_id = request.args.get('brand', type=int)
+    type_id = request.args.get('type', type=int)
+    tag_names = request.args.getlist('tag')
+    search_query = request.args.get('q', '').strip()
+
+    # Apply filters
     if brand_id:
         query = query.filter_by(brand_id=brand_id)
+
     if type_id:
         query = query.filter_by(part_type_id=type_id)
-    if tag_name:
-        query = query.join(part_tags).join(Tag).filter(Tag.name == tag_name)
-    
-    parts = query.all()
-    return render_template('gallery.html', parts=parts)
+
+    if tag_names:
+        query = query.join(part_tags).join(Tag).filter(Tag.name.in_(tag_names))
+
+    if search_query:
+        search = f"%{search_query}%"
+        query = query.filter(or_(
+            Part.name.ilike(search),
+            Part.description.ilike(search),
+            Part.part_number.ilike(search),
+            Brand.name.ilike(search),
+            PartType.name.ilike(search)
+        ))
+
+    # Pagination
+    page = request.args.get('page', 1, type=int)
+    per_page = 12  # Items per page
+    parts = query.paginate(page=page, per_page=per_page, error_out=False)
+
+    # Get filter options
+    brands = Brand.query.order_by(Brand.name).all()
+    part_types = PartType.query.order_by(PartType.name).all()
+
+    # Get popular tags (most used tags)
+    popular_tags = db.session.query(
+        Tag.name
+    ).join(
+        part_tags
+    ).group_by(
+        Tag.name
+    ).order_by(
+        db.func.count().desc()
+    ).limit(20).all()
+
+    return render_template(
+        'gallery.html',
+        parts=parts,
+        brands=brands,
+        part_types=part_types,
+        popular_tags=[tag[0] for tag in popular_tags],  # Unpack tuple results
+        current_filters={
+            'brand': brand_id,
+            'type': type_id,
+            'tags': tag_names,
+            'q': search_query
+        }
+    )
 
 
 @bp.route('/add_part', methods=['GET'])

@@ -35,4 +35,11 @@ def create_app():
         app.register_blueprint(errors_bp)
         app.helpers = helpers
 
+    # filters for gallery
+    @app.template_filter('remove_key')
+    def remove_key(d, key):
+        d = d.copy()
+        d.pop(key, None)
+        return d
+
     return app

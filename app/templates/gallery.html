@@ -1,26 +1,225 @@
-{% extends "layout.html" %}
-
-{% block title %}Vintage Radio Gallery{% endblock %}
+{% extends 'layout.html' %}
 
 {% block content %}
-<div class="gallery">
-    {% for image in images %}
-    <div class="image-card">
-        <img src="{{ url_for('static', filename='images/' + image.filename) }}" 
-             alt="{{ image.description or 'Vintage radio part' }}">
-        <div class="image-info">
-            <h3 class="image-title">{{ image.description or "Vintage Component" }}</h3>
-            <div class="tags">
-                {% for tag in image.tags %}
-                <span class="tag">{{ tag.name }}</span>
+<div class="art-deco-card">
+    <div class="gallery-container">
+        <!-- Filter Sidebar -->
+        <aside class="filters-panel">
+            <h3><i class="fas fa-filter"></i> Refine Collection</h3>
+            
+            <!-- Brand Filter (Corrected) -->
+            <div class="filter-group">
+                <h4>Brand</h4>
+                <div class="searchable-dropdown">
+                    <input type="text" id="brandSearch" placeholder="Search brands..." onkeyup="filterBrands()">
+                    <div class="dropdown-options" id="brandOptions">
+                        <form id="brandFilterForm" method="GET" action="{{ url_for('parts.gallery') }}">
+                            <!-- Preserve other filters -->
+                            {% if current_filters.type %}
+                            <input type="hidden" name="type" value="{{ current_filters.type }}">
+                            {% endif %}
+                            {% if current_filters.q %}
+                            <input type="hidden" name="q" value="{{ current_filters.q }}">
+                            {% endif %}
+                            
+                            <label class="filter-option">
+                                <input type="radio" name="brand" value=""
+                                       {% if not current_filters.brand %}checked{% endif %}
+                                       onchange="document.getElementById('brandFilterForm').submit()">
+                                All Brands
+                            </label>
+                            {% for brand in brands %}
+                            <label class="filter-option">
+                                <input type="radio" name="brand" value="{{ brand.id }}"
+                                       {% if current_filters.brand == brand.id %}checked{% endif %}
+                                       onchange="document.getElementById('brandFilterForm').submit()">
+                                {{ brand.name }}
+                            </label>
+                            {% endfor %}
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Type Filter (Corrected) -->
+            <div class="filter-group">
+                <h4>Component Type</h4>
+                <form id="filtersForm" method="GET" action="{{ url_for('parts.gallery') }}">
+                    <label class="filter-option">
+                        <input type="radio" name="type" value=""
+                               {% if not current_filters.type %}checked{% endif %}
+                               onchange="this.form.submit()">
+                        All Types
+                    </label>
+                    {% for type in part_types %}
+                    <label class="filter-option">
+                        <input type="radio" name="type" value="{{ type.id }}"
+                               {% if current_filters.type == type.id %}checked{% endif %}
+                               onchange="this.form.submit()">
+                        {{ type.name }}
+                    </label>
+                    {% endfor %}
+                    
+                    <!-- Hidden fields to preserve other filters -->
+                    {% if current_filters.brand %}
+                    <input type="hidden" name="brand" value="{{ current_filters.brand }}">
+                    {% endif %}
+                    {% if current_filters.q %}
+                    <input type="hidden" name="q" value="{{ current_filters.q }}">
+                    {% endif %}
+                </form>
+            </
+            
+            <!-- Tag Cloud -->
+            <div class="filter-group">
+                <h4>Tags</h4>
+                <div class="tag-cloud">
+                    {% for tag in popular_tags %}
+                    <a href="{{ url_for('parts.gallery', tag=tag) }}" 
+                       class="tag {% if tag in request.args.getlist('tag') %}active{% endif %}">
+                        {{ tag }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Clear Filters -->
+            <a href="{{ url_for('parts.gallery') }}" class="vintage-button">
+                <i class="fas fa-undo"></i> Reset Filters
+            </a>
+        </aside>
+
+        <!-- Main Results -->
+        <main class="results-area">
+            <!-- Search Box -->
+            <form class="search-box" action="{{ url_for('parts.gallery') }}">
+                <input type="text" name="q" placeholder="Search parts..." 
+                       value="{{ request.args.get('q', '') }}">
+                <button type="submit">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+            
+            <!-- Active Filters -->
+            <div class="active-filters">
+                {% if request.args.get('brand') %}
+                {% set brand = brands|selectattr('id', 'equalto', request.args.get('brand')|int)|first %}
+                <span class="filter-chip">
+                    Brand: {{ brand.name }}
+                    <a href="{{ url_for('parts.gallery', **request.args.to_dict()|remove_key('brand')) }}">
+                        &times;
+                    </a>
+                </span>
+                {% endif %}
+                
+                {% if request.args.get('type') %}
+                {% set type = part_types|selectattr('id', 'equalto', request.args.get('type')|int)|first %}
+                <span class="filter-chip">
+                    Type: {{ type.name }}
+                    <a href="{{ url_for('parts.gallery', **request.args.to_dict()|remove_key('type')) }}">
+                        &times;
+                    </a>
+                </span>
+                {% endif %}
+                
+                {% for tag in request.args.getlist('tag') %}
+                <span class="filter-chip">
+                    Tag: {{ tag }}
+                    <a href="{{ url_for('parts.gallery', **request.args.to_dict()|remove_key('tag')) }}">
+                        &times;
+                    </a>
+                </span>
                 {% endfor %}
             </div>
-            <a href="{{ url_for('images.edit_image', image_id=image.id) }}" 
-               class="edit-btn">
-                Edit Details
-            </a>
-        </div>
+            
+            <!-- Results Grid -->
+            <div class="parts-grid">
+                {% for part in parts.items %}
+                <article class="part-card">
+                    <a href="{{ url_for('parts.view_part', part_id=part.id) }}">
+                        <div class="part-thumbnail">
+                            {% if part.images %}
+                            <!-- Add loading="lazy" and size constraints -->
+                            <img src="{{ url_for('static', filename='images/' + part.images[0].filename) }}"
+                                alt="{{ part.name }}"
+                                loading="lazy"
+                                width="280"
+                                height="200">
+                            {% else %}
+                            <div class="no-image"></div>
+                            {% endif %}
+                        </div>
+                        <div class="part-info">
+                            <h3>{{ part.name }}</h3>
+                            <div class="part-meta">
+                                {% if part.brand %}
+                                <span class="brand">{{ part.brand.name }}</span>
+                                {% endif %}
+                                {% if part.part_type %}
+                                <span class="type">{{ part.part_type.name }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </a>
+                </article>
+                {% endfor %}
+            </div>
+            
+            <!-- Pagination -->
+            {% if parts.pages > 1 %}
+            <div class="pagination">
+                {% if parts.has_prev %}
+                <a href="{{ url_for('parts.gallery', page=parts.prev_num, **request.args) }}">
+                    &laquo; Previous
+                </a>
+                {% endif %}
+                
+                {% for page_num in parts.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                        <a href="{{ url_for('parts.gallery', page=page_num, **request.args) }}"
+                           {% if page_num == parts.page %}class="active"{% endif %}>
+                            {{ page_num }}
+                        </a>
+                    {% else %}
+                        <span class="ellipsis">...</span>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if parts.has_next %}
+                <a href="{{ url_for('parts.gallery', page=parts.next_num, **request.args) }}">
+                    Next &raquo;
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </main>
     </div>
-    {% endfor %}
 </div>
+
+<script>
+function filterBrands() {
+    const input = document.getElementById('brandSearch');
+    const filter = input.value.toUpperCase();
+    const options = document.getElementById('brandOptions');
+    const labels = options.getElementsByTagName('label');
+    
+    for (let i = 0; i < labels.length; i++) {
+        const text = labels[i].textContent || labels[i].innerText;
+        labels[i].style.display = text.toUpperCase().includes(filter) ? "" : "none";
+    }
+}
+
+// Add this to handle form submission
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('brandFilterForm');
+    const radios = form.querySelectorAll('input[type="radio"]');
+    
+    radios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            form.submit();
+        });
+    });
+});
+</script>
+
 {% endblock %}
