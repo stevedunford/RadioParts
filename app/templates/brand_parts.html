@@ -1,0 +1,39 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="art-deco-card brand-parts-page">
+    <header class="section-header">
+        <h1>{{ brand.name }} Parts</h1>
+        {% if brand.description %}
+        <p class="brand-description">{{ brand.description }}</p>
+        {% endif %}
+    </header>
+
+    <div class="parts-grid">
+        {% for part in parts %}
+        <a href="{{ url_for('parts.view_part', part_id=part.id) }}" class="part-card">
+            {% if part.images %}
+            <div class="part-thumbnail">
+                <img src="{{ url_for('static', filename='images/' + part.images[0].filename) }}"
+                     alt="{{ part.name }} thumbnail">
+            </div>
+            {% else %}
+            <div class="part-thumbnail no-image">
+                <i class="fas fa-image vintage-icon-large"></i>
+            </div>
+            {% endif %}
+            <div class="part-info">
+                <h3>{{ part.name }}</h3>
+                <p class="part-number">{{ part.part_number or "No part number" }}</p>
+                <span class="part-type">{{ part.part_type.name }}</span>
+            </div>
+        </a>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-box-open vintage-icon-large"></i>
+            <p>No parts found for this brand</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

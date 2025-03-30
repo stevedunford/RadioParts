@@ -1,4 +1,6 @@
 from flask import Flask, jsonify
+from flask_wtf.csrf import CSRFProtect
+from .utils import helpers
 from .models import db
 
 
@@ -9,29 +11,28 @@ def create_app():
     app.config.from_mapping(
         SQLALCHEMY_DATABASE_URI='sqlite:///nzvintageradioparts.db',
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
-        SECRET_KEY='dc3ee6c47e36f1177178cbe134f3deadbeefeffe5b8fd8ae4363cb7acd1cfeba'
+        SECRET_KEY='9c3ee6247e36a1177178cbe134f31234beefeffe5b8fd8ae4a63cb7cad1cfeba',
+        UPLOAD_FOLDER='app/static/images',
+        ALLOWED_EXTENSIONS={'gif', 'png', 'jpg', 'jpeg'},
+        MAX_CONTENT_LENGTH=16 * 1024 * 1024,  # 16Mb max upload
+        WTF_CSRF_TIME_LIMIT=3600,  # 1 hour token expiration
     )
 
     # Initialize extensions
+    csrf = CSRFProtect(app)
     db.init_app(app)
 
-    # Import and register blueprints HERE (after app creation)
-    from .blueprints.parts import bp as images_bp
-    from .blueprints.tags import bp as tags_bp
+    # Register blueprints
+    with app.app_context():
+        from .blueprints.parts import bp as parts_bp
+        from .blueprints.tags import bp as tags_bp
+        from .blueprints.main import bp as main_bp
+        from .blueprints.errors import bp as errors_bp
 
-    # Main site routes
-    app.register_blueprint(images_bp)  # Handles root path
-
-    # Tag routes
-    app.register_blueprint(tags_bp, url_prefix='/tags')
-
-    # Ensure JSON responses for errors
-    @app.errorhandler(404)
-    def handle_404(e):
-        return jsonify(error=str(e)), 404
-
-    @app.errorhandler(500)
-    def handle_500(e):
-        return jsonify(error="Internal server error"), 500
+        app.register_blueprint(main_bp)
+        app.register_blueprint(parts_bp)
+        app.register_blueprint(tags_bp, url_prefix='/tags')
+        app.register_blueprint(errors_bp)
+        app.helpers = helpers
 
     return app

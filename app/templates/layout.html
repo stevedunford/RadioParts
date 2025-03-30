@@ -3,23 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}NZ Vintage Radio{% endblock %}</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <header class="art-deco-header">
-        <h1>NZ Vintage Radio Parts</h1>
-        <p class="subtitle">All parts available through the NZ Vintage Radio Society</p>
+        <a href="/">
+            <h1>NZ Vintage Radio Parts</h1>
+        </a>
     </header>
 
+    <!-- Art Deco Navigation System -->
+    <nav class="art-deco-nav">
+
+        <!-- Primary Navigation -->
+        <ul class="nav-primary">
+            <li><a href="{{ url_for('parts.gallery') }}"><i class="fas fa-images"></i> Gallery</a></li>
+            <li class="has-submenu">
+                <a href="#"><i class="fas fa-tools"></i> Parts <i class="fas fa-chevron-down"></i></a>
+                <ul class="nav-submenu">
+                    <li><a href="{{ url_for('parts.add_part_form') }}">Add New Part</a></li>
+                    <li><a href="#">Browse Catalog</a></li>
+                    <li class="divider"></li>
+                    <li><a href="#">Request Part</a></li>
+                </ul>
+            </li>
+            <!-- Future Admin Area (hidden for now) -->
+            <li class="admin-only" style="display: none;">
+                <a href="#"><i class="fas fa-unlock-alt"></i> Admin</a>
+                <ul class="nav-submenu">
+                    <li><a href="#">Manage Users</a></li>
+                    <li><a href="#">Audit Log</a></li>
+                </ul>
+            </li>
+        </ul>
+
+        <!-- User Controls (placeholder) -->
+        <div class="nav-user">
+            <a href="#" class="login-prompt"><i class="fas fa-user"></i> Sign In</a>
+        </div>
+    </nav>
+
+    <!-- Content Wrapper -->
     <main>
-        {% block content %}{% endblock %}
+        <div class="content-wrapper">
+            {% block content %}{% endblock %}
+        </div>
     </main>
 
     <footer>
         &copy; {{ current_year }} NZ Vintage Radio Parts Collection
     </footer>
+
+    <script>
+        // Mobile Menu Toggle (for future responsiveness)
+        document.addEventListener('DOMContentLoaded', () => {
+            // Submenu keyboard accessibility
+            const submenuParents = document.querySelectorAll('.has-submenu');
+            
+            submenuParents.forEach(item => {
+                item.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        item.querySelector('.nav-submenu').style.display = 'block';
+                    }
+                });
+            });
+
+            // Close submenus when clicking elsewhere
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.has-submenu')) {
+                    document.querySelectorAll('.nav-submenu').forEach(menu => {
+                        menu.style.opacity = '0';
+                        menu.style.visibility = 'hidden';
+                    });
+                }
+            });
+        });
+    </script>
 </body>
 </html>

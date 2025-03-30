@@ -1,0 +1,98 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+
+<form id="part-form" class="art-deco-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <!-- Name/Description Fields -->
+    <div class="form-group">
+        <label for="name">Part Name</label>
+        <input type="text" id="name" name="name" 
+               maxlength="100" placeholder="">
+    </div>
+    <div class="form-group">
+        <label for="part_number">Part Number</label>
+        <input type="text" id="part_number" name="part_number" 
+               maxlength="30" placeholder="if known, e.g. R6301">
+    </div>
+
+    <!-- Image Upload -->
+    <div class="dropzone" id="dropzone">
+        <div class="dropzone-content">
+            <i class="fas fa-cloud-upload-alt dropzone-icon"></i>
+            <h3 class="dropzone-title">Upload Part Photos</h3>
+            <p class="dropzone-subtitle">Drag & drop UP TO 8 images here or</p>
+            <span class="dropzone-browse" id="browseBtn">Browse Files</span>
+            <p class="dropzone-file-info">Supports JPG, PNG and GIF up to 16MB each</p>
+        </div>
+        <div class="dz-preview-container" id="previewContainer"></div>
+    </div>
+
+    <div class="progress-bar" style="height: 13px; background: #e0d3af;">
+        <div id="upload-progress" style="height: 100%; width: 0%; background: #8b7355;"></div>
+    </div>
+
+    <textarea name="description" maxlength="1024" placeholder="Description"></textarea>
+  
+    <!-- Pre-populated Dropdowns -->
+    <select name="brand_id">
+        <option value="">Select Brand</option>
+        {% for brand in brands %}
+        <option value="{{ brand.id }}">{{ brand.name }}</option>
+        {% endfor %}
+    </select>
+    
+    <select name="part_type_id" required>
+        <option value="">Select Type</option>
+        {% for type in part_types %}
+        <option value="{{ type.id }}">{{ type.name }}</option>
+        {% endfor %}
+    </select>
+    
+    <!-- Location Selector -->
+    <select name="location_id" id="location_id" required>
+        <option value="">Select Location</option>
+        {% for location in locations %}
+        <option value="{{ location.id }}">{{ location.name }}</option>
+        {% endfor %}
+    </select>
+
+    <!-- Box and Position -->
+    <div class="form-row">
+        <div class="form-group">
+            <input type="text" id="box" name="box" maxlength="20" 
+                placeholder="Box / container number">
+        </div>
+        <div class="form-group">
+            <input type="text" id="position" name="position" maxlength="50"
+                placeholder="Location in the store">
+        </div>
+    </div>
+
+    <!-- Tag Manager (Your Click-to-Add System) -->
+    <div class="tag-manager">
+      <input type="text" id="tag-input" placeholder="Add tag (max 8)" maxlength="100">
+      <div id="selected-tags"></div>
+      <div id="existing-tags">
+        <!-- Popular tags appear here as clickable pills -->
+      </div>
+    </div>
+    
+    <div class="form-footer">
+        <button type="submit" class="vintage-button">
+          <span class="button-text">Add New Part</span>
+          <span class="button-icon">⚡</span> <!-- Optional spark! -->
+        </button>
+    </div>
+
+</form>
+
+{% block scripts %}
+<!-- Load Dropzone.js (CDN or local) -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dropzone.min.css') }}">
+<script src="{{ url_for('static', filename='js/dropzone.min.js') }}"></script>
+<script>Dropzone.autoDiscover = false;</script>
+<script src="{{ url_for('static', filename='js/part_editor.js') }}"></script>
+{% endblock %}
+{% endblock %}

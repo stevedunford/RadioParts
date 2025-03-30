@@ -1,0 +1,26 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="content-section art-deco-card">
+    <div class="section-header">
+        <h1>Edit {{ part.name }}</h1>
+        <p class="subtitle">Editing Mode (Placeholder)</p>
+    </div>
+
+    <div class="placeholder-message">
+        <div class="vintage-icon-large">
+            <i class="fas fa-tools"></i>
+        </div>
+        <h3>Under Construction</h3>
+        <p>Our radio engineers are busy soldering this interface together!</p>
+        <p>Check back soon for the full editing experience.</p>
+        
+        <div class="placeholder-actions">
+            <a href="{{ url_for('parts.view_part', part_id=part.id) }}" 
+               class="vintage-button">
+                <i class="fas fa-arrow-left"></i> Back to Part
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

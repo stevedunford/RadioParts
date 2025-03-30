@@ -62,15 +62,15 @@ class Part(db.Model):
     box = db.Column(db.String(20))            # "Box 3A"
     position = db.Column(db.String(50))       # "Bottom shelf"
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-
-    # Relationships
     brand_id = db.Column(db.Integer, db.ForeignKey('Brand.id'))
-    brand = db.relationship('Brand', back_populates='parts')
     location_id = db.Column(db.Integer, db.ForeignKey('Location.id'))
+    part_type_id = db.Column(db.Integer, db.ForeignKey('PartType.id'))
+    
+    # Relationships
+    brand = db.relationship('Brand', back_populates='parts')
     location = db.relationship('Location', back_populates='parts')
     images = db.relationship('Image', back_populates='part')
     tags = db.relationship('Tag', secondary=part_tags, back_populates='parts')
-    part_type_id = db.Column(db.Integer, db.ForeignKey('PartType.id'))
     part_type = db.relationship('PartType')
 
 
@@ -106,6 +106,12 @@ class Image(db.Model):
     description = db.Column(db.String(500))
     created_at = db.Column(db.DateTime,
                            default=lambda: datetime.now(timezone.utc))
+    location_id = db.Column(db.Integer, db.ForeignKey('Location.id'))
+    part_id = db.Column(db.Integer, db.ForeignKey('Part.id'))
+
+    # Relationship to tags
+    location = db.relationship('Location', back_populates='images')
+    part = db.relationship('Part', back_populates='images')
     tags = db.relationship('Tag',
                            secondary='image_tags',
                            backref=db.backref('images', lazy='dynamic'))
@@ -118,6 +124,12 @@ class Image(db.Model):
             'description': self.description,
             'tags': [tag.to_dict() for tag in self.tags]
         }
+    
+    def verify_association(self):
+        """Ensure consistent relationship state"""
+        if self.part_id and self.part not in self.part.images:
+            self.part.images.append(self)
+        return self
 
 
 class Tag(db.Model):
@@ -125,3 +137,7 @@ class Tag(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
     description = db.Column(db.String(255))
+    part_id = db.Column(db.Integer, db.ForeignKey('Part.id'))
+
+    # Relationships
+    parts = db.relationship('Part', back_populates='tags')

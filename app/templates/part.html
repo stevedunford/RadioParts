@@ -1,0 +1,153 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="part-container">
+    <!-- Header with Tag-like Brand/Type -->
+    <header class="part-header">
+        <h1>{{ part.name }} {% if part.part_number %} - {{part.part_number}}{% endif %}</h1>
+
+        <!-- Part Details -->
+        <section class="description">
+            <p class="part-details-top">{{ part.description or "No description provided" }}</p>
+        </section>
+    </header>
+
+    <!-- Image Gallery -->
+    <div class="image-gallery">
+        {% if part.images %}
+            <div class="main-image-wrapper">
+                <img src="{{ url_for('static', filename='images/' + part.images[0].filename) }}" 
+                     alt="{{ part.name }}"
+                     class="constrained-image">
+            </div>
+            
+            {% if part.images|length > 1 %}
+            <div class="thumbnail-strip">
+                {% for image in part.images %}
+                <img src="{{ url_for('static', filename='images/' + image.filename) }}" 
+                     alt="Thumbnail {{ loop.index }}"
+                     class="thumbnail"
+                     onclick="document.querySelector('.constrained-image').src = this.src">
+                {% endfor %}
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="no-images">
+                <i class="fas fa-image"></i>
+                <p>No images available</p>
+            </div>
+        {% endif %}
+    </div>
+    
+    <!-- Enhanced Tags Section -->
+    <section class="tags">
+        <h2><i class="fas fa-tags"></i> Classification</h2>
+        <div class="tag-list">
+            <!-- Brand as Special Tag -->
+            {% if part.brand %}
+            <a href="{{ url_for('parts.gallery') }}?brand={{ part.brand.id }}" 
+            class="tag brand-tag">
+                {{ part.brand.name }}
+            </a>
+            {% endif %}
+
+            <!-- Type as Special Tag -->
+            {% if part.part_type %}
+            <a href="{{ url_for('parts.gallery') }}?type={{ part.part_type.id }}" 
+            class="tag type-tag">
+                {{ part.part_type.name }}
+            </a>
+            {% endif %}
+
+            <!-- Regular Tags -->
+            {% for tag in part.tags %}
+            <a href="{{ url_for('parts.gallery') }}?tag={{ tag.name }}" 
+            class="tag">
+                {{ tag.name }}
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+
+</div>
+
+<!-- Image Modal -->
+<div id="imageModal" class="art-deco-modal" onclick="closeModal()">
+    <div class="modal-image-container">
+        <img class="modal-content" id="modalImage" 
+             src="" 
+             alt="Enlarged view">
+        <div class="modal-caption" id="modalCaption"></div>
+    </div>
+</div>
+
+<script>
+    // Initialize modal with your current images
+    const partImages = [
+        {% for image in part.images %}
+        {
+            src: "{{ url_for('static', filename='images/' + image.filename) }}",
+            desc: "{{ part.name }}"
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+    
+    // Make thumbnails open modal instead of swapping main image
+    document.querySelectorAll('.thumbnail').forEach(thumb => {
+        thumb.onclick = function() {
+            const src = this.getAttribute('src');
+            openImageModal(src);
+        };
+    });
+    
+    // Modal functions
+    let currentImageIndex = 0;
+    
+    function openImageModal(src) {
+        currentImageIndex = partImages.findIndex(img => img.src === src);
+        updateModal();
+        document.getElementById('imageModal').style.display = "flex"; // Changed to flex
+        document.body.style.overflow = "hidden";
+    }
+
+    function updateModal() {
+        const modalImg = document.getElementById('modalImage');
+        const caption = document.getElementById('modalCaption');
+        
+        // Smooth transition
+        modalImg.style.opacity = 0;
+        setTimeout(() => {
+            modalImg.src = partImages[currentImageIndex].src;
+            caption.textContent = partImages[currentImageIndex].desc;
+            modalImg.style.opacity = 1;
+        }, 200);
+    }
+    
+    function closeModal() {
+        document.getElementById('imageModal').style.display = "none";
+        document.body.style.overflow = "auto"; // Re-enable scrolling
+    }
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        const modal = document.getElementById('imageModal');
+        if (modal.style.display === "block") {
+            if (e.key === "Escape") closeModal();
+            if (e.key === "ArrowLeft") navigateModal(-1);
+            if (e.key === "ArrowRight") navigateModal(1);
+        }
+    });
+    
+    function navigateModal(direction) {
+        currentImageIndex = (currentImageIndex + direction + partImages.length) % partImages.length;
+        updateModal();
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === "Escape" && document.getElementById('imageModal').style.display === "block") {
+            closeModal();
+        }
+    });
+</script>
+
+{% endblock %}

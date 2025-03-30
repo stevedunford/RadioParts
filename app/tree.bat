@@ -1,0 +1,2 @@
+@echo off
+powershell -NoProfile -Command "Get-ChildItem -Recurse -Exclude 'node_modules','__pycache__','.git','*.pyc' | Where-Object { $_.PSIsContainer } | ForEach-Object { $indent = ' ' * 4 * ($_.FullName.Split('\').Length - 1); \"$indent├── $($_.Name)\"; Get-ChildItem -Path $_.FullName -File | ForEach-Object { \"$indent├── $($_.Name)\" } }"tree
