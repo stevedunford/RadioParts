@@ -150,7 +150,7 @@
                             {% endif %}
                         </div>
                         <div class="part-info">
-                            <h3>{{ part.name }}</h3>
+                            <h3>{{ part.name }}{% if part.part_number %} <i>({{ part.part_number }})</i>{% endif %}</h3>
                             <div class="part-meta">
                                 {% if part.brand %}
                                 <span class="brand">{{ part.brand.name }}</span>
