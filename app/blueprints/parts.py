@@ -236,37 +236,56 @@ def view_part(part_id):
                            current_year=datetime.now().year)
 
 
-@bp.route('/part/<int:part_id>/edit')
+@bp.route('/edit/<int:part_id>', methods=['GET', 'POST'])
 def edit_part(part_id):
-    """Placeholder edit route - will implement fully later"""
     part = Part.query.options(
         db.joinedload(Part.brand),
         db.joinedload(Part.part_type),
         db.joinedload(Part.location),
-        db.joinedload(Part.images),
-        db.joinedload(Part.tags)
+        db.joinedload(Part.tags),
+        db.joinedload(Part.images)
     ).get_or_404(part_id)
-    
-    # Get all available options for dropdowns
+
+    if request.method == 'POST':
+        try:
+            # Update basic fields
+            part.name = request.form.get('name', part.name)
+            part.description = request.form.get('description', part.description)
+            part.part_number = request.form.get('part_number', part.part_number)
+            part.quantity = int(request.form.get('quantity', part.quantity))
+            part.box = request.form.get('box', part.box)
+            part.position = request.form.get('position', part.position)
+            
+            # Update relationships
+            part.brand_id = int(request.form.get('brand_id', part.brand_id))
+            part.part_type_id = int(request.form.get('part_type_id', part.part_type_id))
+            part.location_id = int(request.form.get('location_id', part.location_id))
+            
+            # Handle tags
+            tag_names = [t.strip() for t in request.form.get('tags', '').split(',') if t.strip()]
+            part.tags = []
+            for name in tag_names:
+                tag = Tag.query.filter_by(name=name).first() or Tag(name=name)
+                part.tags.append(tag)
+            
+            db.session.commit()
+            flash('Part updated successfully!', 'success')
+            return redirect(url_for('parts.view_part', part_id=part.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating part: {str(e)}', 'error')
+
+    # Get all options for dropdowns
     brands = Brand.query.order_by(Brand.name).all()
     part_types = PartType.query.order_by(PartType.name).all()
     locations = Location.query.order_by(Location.name).all()
     
     return render_template('edit_part.html',
-                           part=part,
-                           brands=brands,
-                           part_types=part_types,
-                           locations=locations)
-    
-    
-@bp.route('/<int:image_id>/edit')
-def edit_image(image_id):
-    image = Image.query.get_or_404(image_id)
-    all_tags = Tag.query.order_by(Tag.name).all()  # Get ALL tags from database
-    return render_template('edit.html', 
-                         image=image,
-                         image_tags=image.tags,  # Just the tags on this image
-                         all_tags=all_tags)      # All possible tags
+                         part=part,
+                         brands=brands,
+                         part_types=part_types,
+                         locations=locations)
 
 
 @bp.route('/all_images', methods=['GET'])
