@@ -1031,6 +1031,154 @@ input[type="radio"]:checked {
 }
 
 /* ==================== */
+/* TAG MANAGER - Art Deco Style */
+/* ==================== */
+.tag-manager {
+    background: var(--light);
+    padding: 2rem;
+    border-top: 6px solid var(--primary);
+    margin-top: 2rem;
+}
+
+.tag-manager h2 {
+    color: var(--secondary);
+    font-family: var(--font-display);
+    border-bottom: 3px solid var(--primary);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.tag-manager h2 i {
+    color: var(--primary);
+}
+
+.tag-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.tag-item {
+    background: white;
+    padding: 1.5rem;
+    border-left: 4px solid var(--primary);
+    box-shadow: 3px 3px 0 var(--dark);
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.tag-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 5px 5px 0 var(--dark);
+}
+
+.tag-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.tag-name {
+    font-weight: 600;
+    color: var(--secondary);
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.tag-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.tag-form {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.tag-form input[type="text"] {
+    flex-grow: 1;
+    padding: 0.5rem 1rem;
+    border: 2px solid var(--semi-light);
+    font-family: var(--font-main);
+}
+
+.tag-form button {
+    background: var(--primary);
+    color: var(--secondary);
+    border: none;
+    padding: 0 1.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.tag-form button:hover {
+    background: var(--accent);
+    color: white;
+}
+
+.tag-count {
+    display: inline-block;
+    background: rgba(230, 194, 41, 0.2);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    color: var(--secondary);
+}
+
+.add-tag-form {
+    margin-bottom: 2rem;
+    background: rgba(230, 194, 41, 0.1);
+    padding: 1.5rem;
+    border: 2px dashed var(--primary);
+}
+
+.add-tag-form h3 {
+    margin-top: 0;
+    color: var(--secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.add-tag-form h3 i {
+    color: var(--primary);
+}
+
+.delete-btn {
+    background: var(--error) !important;
+    color: white !important;
+}
+
+.delete-btn:hover {
+    background: #d32f2f !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .tag-list {
+        grid-template-columns: 1fr;
+    }
+    
+    .tag-actions {
+        flex-direction: column;
+    }
+    
+    .tag-form {
+        flex-direction: column;
+    }
+    
+    .tag-form button {
+        padding: 0.5rem;
+    }
+}
+
+/* ==================== */
 /* ENHANCED TAG SYSTEM */
 /* ==================== */
 

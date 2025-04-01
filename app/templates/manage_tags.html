@@ -2,45 +2,49 @@
 
 {% block content %}
 <div class="art-deco-card">
-    <h2>Manage Tags</h2>
-    
-    <!-- Add New Tag Form -->
-    <form method="POST" action="{{ url_for('tags.add_tag') }}" class="vintage-form">
-        <div class="form-group">
-            <label for="name">New Tag Name:</label>
-            <input type="text" id="name" name="name" required class="vintage-input">
-            <button type="submit" class="vintage-button">
-                <i class="fas fa-plus"></i> Add Tag
-            </button>
-        </div>
-    </form>
-    
-    <!-- Tags List -->
-    <div class="tags-list">
-        {% for tag in tags %}
-        <div class="tag-item">
-            <form method="POST" action="{{ url_for('tags.edit_tag', tag_id=tag.id) }}" class="inline-form">
-                <input type="text" name="name" value="{{ tag.name }}" class="vintage-input">
-                <button type="submit" class="vintage-button small">
-                    <i class="fas fa-save"></i> Update
-                </button>
+    <div class="tag-manager">
+        <h2><i class="fas fa-tags"></i> Manage Tags</h2>
+        
+        <!-- Add New Tag Form -->
+        <div class="add-tag-form">
+            <h3><i class="fas fa-plus"></i> Add New Tag</h3>
+            <form method="POST" action="{{ url_for('tags.add_tag') }}" class="tag-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="text" name="name" placeholder="Enter tag name" required>
+                <button type="submit">Add</button>
             </form>
-            
-            <form method="POST" action="{{ url_for('tags.delete_tag', tag_id=tag.id) }}" class="inline-form">
-                <button type="submit" class="vintage-button small danger">
-                    <i class="fas fa-trash"></i> Delete
-                </button>
-            </form>
-            
-            <span class="tag-count">{{ tag.parts|length }} parts</span>
         </div>
-        {% else %}
-        <p>No tags yet. Add your first tag above.</p>
-        {% endfor %}
+        
+        <!-- Tags List -->
+        <div class="tag-list">
+            {% for tag in tags %}
+            <div class="tag-item">
+                <div class="tag-header">
+                    <h3 class="tag-name">{{ tag.name }}</h3>
+                    <span class="tag-count">{{ tag.parts|length }} parts</span>
+                </div>
+                
+                <form method="POST" action="{{ url_for('tags.edit_tag', tag_id=tag.id) }}" class="tag-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="text" name="name" value="{{ tag.name }}" required>
+                    <button type="submit">Update</button>
+                </form>
+                
+                <form method="POST" action="{{ url_for('tags.delete_tag', tag_id=tag.id) }}" class="tag-form" style="margin-top: 0.5rem;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" class="delete-btn">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </form>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-tags vintage-icon-large"></i>
+                <h3>No Tags Yet</h3>
+                <p>Add your first tag using the form above</p>
+            </div>
+            {% endfor %}
+        </div>
     </div>
-    
-    <a href="{{ url_for('parts.gallery') }}" class="vintage-button">
-        <i class="fas fa-arrow-left"></i> Back to Gallery
-    </a>
 </div>
 {% endblock %}

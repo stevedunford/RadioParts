@@ -32,6 +32,7 @@ def add_tag():
 
     return redirect(url_for('tags.manage_tags'))
 
+
 @bp.route('/edit/<int:tag_id>', methods=['POST'])
 def edit_tag(tag_id):
     """Edit an existing tag"""
@@ -52,6 +53,7 @@ def edit_tag(tag_id):
     except IntegrityError:
         db.session.rollback()
         flash(f'Tag "{new_name}" already exists', 'error')
+
     return redirect(url_for('tags.manage_tags'))
 
 
