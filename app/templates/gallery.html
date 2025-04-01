@@ -71,23 +71,28 @@
             </
             
             <!-- Tag Cloud -->
-            <div class="filter-group">
-                <h4>Tags</h4>
-                <div class="tag-cloud">
-                    {% for tag in all_tags %}
-                    <a href="{{ url_for('parts.gallery', tag=tag.name) }}" 
-                       class="tag {% if tag.name in request.args.getlist('tag') %}active{% endif %}"
-                       data-count="{{ tag.count }}">
-                        {{ tag.name }} <span class="tag-count">({{ tag.count }})</span>
-                    </a>
-                    {% endfor %}
-                </div>
+            <div class="tag-cloud">
+                {% for tag in all_tags %}
+                <a href="{{ url_for('parts.gallery', tag=tag.name) }}" 
+                   class="tag {% if tag.name in request.args.getlist('tag') %}active{% endif %}"
+                   data-count="{{ tag.count }}">
+                    {{ tag.name }} 
+                    {% if tag.count > 0 %}
+                    <span class="tag-count">({{ tag.count }})</span>
+                    {% endif %}
+                </a>
+                {% endfor %}
             </div>
             
             <!-- Clear Filters -->
-            <a href="{{ url_for('parts.gallery') }}" class="vintage-button">
-                <i class="fas fa-undo"></i> Reset Filters
-            </a>
+            <div class="form-footer">
+                <a href="{{ url_for('parts.gallery') }}">
+                    <button type="submit" class="vintage-button">
+                    <span class="button-text">Reset Filters</span>
+                    <span class="button-icon">↺</span> <!-- Optional spark! -->
+                    </button>
+                </a>
+            </div>
         </aside>
 
         <!-- Main Results -->

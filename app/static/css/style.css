@@ -1,3 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Poiret+One&display=swap');
+
+
 /* ============================================ */
 /* CSS Variables & Base Styles - Art Deco Radio */
 /* ============================================ */
@@ -60,9 +63,9 @@ h1, h2, h3, h4 {
 }
 
 .art-deco-header h1 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Poiret One', serif;
     font-size: 3.5rem;
-    color: var(--primary);          /* Gold text */
+    color: var(--primary);
     margin: 0;
     text-transform: uppercase;
     letter-spacing: 3px;
@@ -80,13 +83,13 @@ h1, h2, h3, h4 {
 /* ART DECO NAVIGATION - Radio Console Style
 /* ==================== */
 .art-deco-nav {
-    background: var(--secondary);
+    background: var(--lt-color-gray-700);
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 0 2rem;
     height: 70px;
-    border-bottom: 3px solid var(--primary);
+    /** border-bottom: 3px solid var(--primary); **/
     box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     position: relative;
     z-index: 1000;
@@ -113,7 +116,7 @@ h1, h2, h3, h4 {
 /* Main Nav Items */
 .nav-primary {
     display: flex;
-    gap: 1px; /* For divider effect */
+    gap: 1px;
     margin: 0;
     padding: 0;
     height: 100%;
@@ -224,10 +227,10 @@ h1, h2, h3, h4 {
     transform: translateY(-2px);
 }
 
-/* Content Wrapper Adjustment */
+/* Content Wrapper Adjustment
 .content-wrapper {
     padding-top: 2rem;
-}
+} */
 
 /* ==================== */
 /* ART DECO COMPONENTS - Radio Inspired 
@@ -284,12 +287,12 @@ h1, h2, h3, h4 {
 /** CARDS **/
 .art-deco-card {
     background: var(--light);
-    border-radius: 0; /* Sharp Art Deco edges */
+    border-radius: 0;
     box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    padding: 2.5rem;
-    margin: 2rem auto;
-    max-width: 1200px;
-    border-top: 6px solid var(--primary);
+    padding: 1.5rem;
+    /**margin: 2rem auto;
+    max-width: 1200px;**/
+    border: 3px solid var(--primary);
     position: relative;
     overflow: hidden;
 }
@@ -313,7 +316,6 @@ h1, h2, h3, h4 {
     width: 50%;
     height: 3px;
     background: var(--primary);
-    /* Radio frequency indicator style */
     box-shadow: 0 0 0 3px var(--secondary),
                 0 0 0 6px var(--primary);
 }
@@ -397,7 +399,7 @@ p.part-details-top {
     position: relative;
     margin-top: 0.8rem;
     transition: all 0.3s ease;
-    border-radius: 0; /* Sharp edges for Art Deco */
+    border-radius: 0;
 }
 
 .vintage-button:hover {
@@ -810,15 +812,15 @@ p.part-details-top {
 .part-info h3, 
 .part-meta .brand, 
 .part-meta .type {
-    color: var(--secondary) !important; /* Force dark text */
+    color: var(--secondary) !important;
 }
 
 /* Thumbnail sizing fix */
 .part-thumbnail img {
-    width: 100%;
-    height: 200px; /* Fixed height */
-    object-fit: contain; /* Contain instead of cover */
-    padding: 15px; /* Breathing room */
+    width: 96%;
+    height: 200px;
+    object-fit: contain;
+    padding: 15px;
     background: white;
     border: 1px solid var(--semi-light);
 }
@@ -830,12 +832,12 @@ p.part-details-top {
 
 /* Checkbox styling */
 .filter-option {
-    color: var(--secondary) !important; /* Dark text */
+    color: var(--secondary) !important;
 }
 
 .filter-option input[type="radio"] {
     margin-right: 8px;
-    accent-color: var(--primary); /* Style radio buttons */
+    accent-color: var(--primary);
 }
 
 /* Style radio buttons like vintage dials */
@@ -887,7 +889,7 @@ input[type="radio"]:checked {
 }
 
 .searchable-dropdown input[type="text"] {
-    width: 100%;
+    width: 93%;
     padding: 0.5rem;
     margin-bottom: 0.5rem;
     border: 2px solid var(--semi-light);
@@ -941,24 +943,78 @@ input[type="radio"]:checked {
     font-weight: bold;
 }
 
-/* Tag Cloud */
+/* ==================== */
+/* ENHANCED TAG CLOUD - Art Deco Style */
+/* ==================== */
+/* ==================== */
+/* ENHANCED TAG CLOUD - Refined Art Deco Style */
+/* ==================== */
 .tag-cloud {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 0.6rem; /* Reduced gap */
+    margin: 1rem 0;
 }
 
 .tag-cloud .tag {
+    display: inline-block;
+    padding: 0.4rem 1rem; /* Smaller padding */
     background: var(--light);
     color: var(--secondary);
-    padding: 0.3rem 0.8rem;
-    border-radius: 20px;
+    border-radius: 50px;
     text-decoration: none;
+    font-size: 0.85rem; /* Slightly smaller font */
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    border: 2px solid var(--semi-light);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1); /* Smoother transition */
+    box-shadow: 2px 2px 4px rgba(0,0,0,0.1); /* Softer shadow */
+    position: relative;
+    overflow: hidden;
+}
+
+.tag-cloud .tag::before {
+    content: "";
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border: 1px solid var(--primary); /* Thinner border */
+    border-radius: 50px;
+    opacity: 0;
+    transition: all 0.2s ease;
+}
+
+.tag-cloud .tag:hover {
+    transform: translateY(-2px); /* Smaller lift */
+    box-shadow: 3px 3px 6px rgba(0,0,0,0.15); /* Softer shadow */
+    border-color: var(--primary);
+    background: linear-gradient(135deg, var(--light) 50%, rgba(230, 194, 41, 0.1) 50%);
 }
 
 .tag-cloud .tag.active {
     background: var(--primary);
-    color: white;
+    color: var(--secondary);
+    border-color: var(--primary);
+    font-weight: 600;
+    box-shadow: 3px 3px 6px rgba(0,0,0,0.15); /* Softer shadow */
+    transform: translateY(0); /* No lift when active */
+}
+
+.tag-cloud .tag.active::after {
+    content: "✓";
+    margin-left: 0.4rem; /* Smaller margin */
+    font-size: 0.8rem; /* Smaller checkmark */
+}
+
+.tag-count {
+    display: inline-block;
+    margin-left: 0.4rem; /* Smaller margin */
+    background: rgba(42, 45, 52, 0.1);
+    padding: 0.15rem 0.4rem; /* Smaller padding */
+    border-radius: 8px;
+    font-size: 0.75rem; /* Smaller font */
 }
 
 /* Responsive */

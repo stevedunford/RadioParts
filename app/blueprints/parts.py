@@ -1,5 +1,6 @@
 from flask import Blueprint, flash, redirect, request, jsonify, current_app, \
                   render_template, url_for, abort
+from slugify import slugify
 from werkzeug.utils import secure_filename
 from ..utils import helpers
 from ..models import db, Part, Image, PartType, Brand, Location, Tag, part_tags
@@ -102,19 +103,37 @@ def gallery():
     brands = Brand.query.order_by(Brand.name).all()
     part_types = PartType.query.order_by(PartType.name).all()
 
-    # Get all tags
-    all_tags = db.session.query(
+      # Get all distinct tag names with their counts
+    tag_counts = db.session.query(
         Tag.name,
-        Tag.slug,
         func.count(part_tags.c.part_id).label('count')
-    ).outerjoin(part_tags).group_by(Tag.id).order_by(Tag.name).all()
+    ).join(
+        part_tags
+    ).group_by(
+        Tag.name
+    ).order_by(
+        Tag.name
+    ).all()
+
+    # Get all tags that exist (even if unused)
+    all_tags = Tag.query.order_by(Tag.name).all()
+
+    # Combine the data
+    tags_data = []
+    for tag in all_tags:
+        count = next((tc[1] for tc in tag_counts if tc[0] == tag.name), 0)
+        tags_data.append({
+            'name': tag.name,
+            'count': count,
+            'slug': slugify(tag.name)
+        })
 
     return render_template(
         'gallery.html',
         parts=parts,
         brands=brands,
         part_types=part_types,
-        all_tags=all_tags,  # Changed from popular_tags
+        all_tags=tags_data,  # Now passing properly structured data
         current_filters={
             'brand': brand_id,
             'type': type_id,

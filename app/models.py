@@ -9,7 +9,8 @@ db = SQLAlchemy()
 # Association tables (unchanged)
 part_tags = db.Table('part_tags',
     db.Column('part_id', db.Integer, db.ForeignKey('Part.id'), primary_key=True),
-    db.Column('tag_id', db.Integer, db.ForeignKey('Tag.id'), primary_key=True)
+    db.Column('tag_id', db.Integer, db.ForeignKey('Tag.id'), primary_key=True),
+    db.Column('created_at', db.DateTime, default=datetime.now(timezone.utc))
 )
 
 
@@ -129,9 +130,8 @@ class Tag(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
     description = db.Column(db.String(255))
-    slug = db.Column(db.String(100), unique=True, index=True)
-    created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
-
+    slug = db.Column(db.String(100), nullable=False, unique=True, index=True)
+    
     # Relationships
     parts = db.relationship('Part', secondary=part_tags, back_populates='tags')
 
