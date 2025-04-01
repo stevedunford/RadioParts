@@ -74,10 +74,11 @@
             <div class="filter-group">
                 <h4>Tags</h4>
                 <div class="tag-cloud">
-                    {% for tag in popular_tags %}
-                    <a href="{{ url_for('parts.gallery', tag=tag) }}" 
-                       class="tag {% if tag in request.args.getlist('tag') %}active{% endif %}">
-                        {{ tag }}
+                    {% for tag in all_tags %}
+                    <a href="{{ url_for('parts.gallery', tag=tag.name) }}" 
+                       class="tag {% if tag.name in request.args.getlist('tag') %}active{% endif %}"
+                       data-count="{{ tag.count }}">
+                        {{ tag.name }} <span class="tag-count">({{ tag.count }})</span>
                     </a>
                     {% endfor %}
                 </div>

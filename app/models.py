@@ -12,11 +12,6 @@ part_tags = db.Table('part_tags',
     db.Column('tag_id', db.Integer, db.ForeignKey('Tag.id'), primary_key=True)
 )
 
-image_tags = db.Table('image_tags',
-    db.Column('image_id', db.Integer, db.ForeignKey('Image.id'), primary_key=True),
-    db.Column('tag_id', db.Integer, db.ForeignKey('Tag.id'), primary_key=True)
-)
-
 
 class Brand(db.Model):
     """Radio manufacturers"""
@@ -112,10 +107,7 @@ class Image(db.Model):
     # Relationship to tags
     location = db.relationship('Location', back_populates='images')
     part = db.relationship('Part', back_populates='images')
-    tags = db.relationship('Tag',
-                           secondary='image_tags',
-                           backref=db.backref('images', lazy='dynamic'))
-
+    
     def to_dict(self):
         return {
             'id': self.id,
@@ -137,7 +129,13 @@ class Tag(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
     description = db.Column(db.String(255))
-    part_id = db.Column(db.Integer, db.ForeignKey('Part.id'))
+    slug = db.Column(db.String(100), unique=True, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
 
     # Relationships
-    parts = db.relationship('Part', back_populates='tags')
+    parts = db.relationship('Part', secondary=part_tags, back_populates='tags')
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if not self.slug:
+            self.slug = slugify(self.name)

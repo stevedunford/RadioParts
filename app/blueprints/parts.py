@@ -102,23 +102,19 @@ def gallery():
     brands = Brand.query.order_by(Brand.name).all()
     part_types = PartType.query.order_by(PartType.name).all()
 
-    # Get popular tags (most used tags)
-    popular_tags = db.session.query(
-        Tag.name
-    ).join(
-        part_tags
-    ).group_by(
-        Tag.name
-    ).order_by(
-        db.func.count().desc()
-    ).limit(20).all()
+    # Get all tags
+    all_tags = db.session.query(
+        Tag.name,
+        Tag.slug,
+        func.count(part_tags.c.part_id).label('count')
+    ).outerjoin(part_tags).group_by(Tag.id).order_by(Tag.name).all()
 
     return render_template(
         'gallery.html',
         parts=parts,
         brands=brands,
         part_types=part_types,
-        popular_tags=[tag[0] for tag in popular_tags],  # Unpack tuple results
+        all_tags=all_tags,  # Changed from popular_tags
         current_filters={
             'brand': brand_id,
             'type': type_id,
