@@ -2,9 +2,10 @@
 
 {% block content %}
 
-<form id="part-form" method="POST" enctype="multipart/form-data" class="art-deco-form">
+<form id="part-form" class="art-deco-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="part_id" value="{{ part.id }}">
+    <input type="hidden" name="deleted_images" id="deleted_images">
 
     <!-- Name/Description Fields -->
     <div class="form-group">
@@ -27,20 +28,7 @@
             <span class="dropzone-browse" id="browseBtn">Browse Files</span>
             <p class="dropzone-file-info">Supports JPG, PNG and GIF up to 16MB each</p>
         </div>
-
         <div class="dz-preview-container" id="previewContainer"></div>
-            {% for image in part.images %}
-            <div class="dz-preview dz-processing dz-image-preview dz-complete">
-                <div class="dz-image">
-                    <img data-dz-thumbnail src="{{ url_for('static', filename='images/' + image.filename) }}">
-                </div>
-                <div class="dz-details">
-                    <div class="dz-filename"><span data-dz-name>{{ image.filename }}</span></div>
-                </div>
-                <a class="dz-remove" href="javascript:undefined;" data-image-id="{{ image.id }}">Remove</a>
-            </div>
-            {% endfor %}
-        </div>
     </div>
 
     <div class="progress-bar" style="height: 13px; background: #e0d3af;">
@@ -90,6 +78,7 @@
       <div id="selected-tags">
         {% for tag in part.tags %}
         <span class="tag-pill" data-tag-id="{{ tag.id }}">{{ tag.name }} ×</span>
+        <input type="hidden" name="tags[]" value="{{ tag.name }}">
         {% endfor %}
       </div>
       <div id="existing-tags">
@@ -124,6 +113,19 @@
         // Initialize edit mode flags
         window.partEditMode = true;
         window.partId = {{ part.id }};
+        window.existingImages = [
+            {% for image in part.images %}
+            {
+                id: {{ image.id }},
+                name: "{{ image.filename }}",
+                size: 0, // Not important for display
+                url: "{{ url_for('static', filename='images/' + image.filename) }}"
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ];
+        
+        // Track deleted images
+        window.deletedImages = [];
         
         // Minimal delete handler (can be overridden in part_editor.js)
         document.getElementById('delete-part')?.addEventListener('click', function() {

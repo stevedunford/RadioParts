@@ -4,7 +4,7 @@
 <div class="part-container">
     <!-- Header with Tag-like Brand/Type -->
     <header class="part-header">
-        <h1>{{ part.name }} {% if part.part_number %} - {{part.part_number}}{% endif %}</h1>
+        <h1>{{ part.name }} {% if part.part_number %} - {{part.part_number}}{% endif %} <a href="/edit/{{part.id}}">🖉</a></h1>
 
         <!-- Part Details -->
         <section class="description">

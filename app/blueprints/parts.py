@@ -268,12 +268,23 @@ def edit_part(part_id):
                 part.tags.append(tag)
             
             # Handle image deletions
-            if 'deleted_images' in request.form:
+            if request.form.get('deleted_images'):
                 deleted_ids = [int(id) for id in request.form['deleted_images'].split(',') if id]
                 for img_id in deleted_ids:
                     image = Image.query.get(img_id)
                     if image and image.part_id == part.id:
                         db.session.delete(image)
+            
+            # Handle new images
+            image_ids = request.form.getlist('image_ids[]')
+            for img_id in image_ids:
+                if img_id:  # Skip empty/None
+                    image = Image.query.get(img_id)
+                    if image and not image.part_id:  # Only add if not already assigned
+                        # Set both forward and backward references
+                        part.images.append(image)
+                        image.part_id = part.id  # Explicitly set foreign key
+                        db.session.add(image)  # Ensure change is tracked
             
             db.session.commit()
             return jsonify({
