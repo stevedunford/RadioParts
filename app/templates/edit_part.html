@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<form id="part-form" class="art-deco-form">
+<form id="part-form" method="POST" enctype="multipart/form-data" class="art-deco-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="part_id" value="{{ part.id }}">
 
@@ -98,108 +98,53 @@
     </div>
     
     <div class="form-footer">
-        <button type="submit" class="vintage-button">
-          <span class="button-text">Update Part</span>
-          <span class="button-icon">⚡</span>
+        <button type="submit" class="vintage-button" id="submit-button">
+            <span class="button-text">Update Part</span>
+            <span class="button-icon">⚡</span>
         </button>
         <button type="button" id="delete-part" class="vintage-button delete-button">
-          <span class="button-text">Delete Part</span>
-          <span class="button-icon">🗑️</span>
+            <span class="button-text">Delete Part</span>
+            <span class="button-icon">🗑️</span>
         </button>
     </div>
 
 </form>
 
 {% block scripts %}
-<!-- Load Dropzone.js -->
+<!-- Load Dropzone.js CSS -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/dropzone.min.css') }}">
-<script src="{{ url_for('static', filename='js/dropzone.min.js') }}"></script>
-<script>Dropzone.autoDiscover = false;</script>
-<script src="{{ url_for('static', filename='js/part_editor.js') }}"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Dropzone
-    var myDropzone = new Dropzone("#dropzone", {
-        url: "/parts/upload", // Your upload endpoint
-        paramName: "file",
-        maxFilesize: 16, // MB
-        maxFiles: 8,
-        acceptedFiles: "image/*",
-        addRemoveLinks: true,
-        autoProcessQueue: false,
-        dictDefaultMessage: "",
-        dictRemoveFile: "Remove",
-        thumbnailWidth: 120,  // Thumbnail width in px
-        thumbnailHeight: 120, // Thumbnail height in px
-        init: function() {
-            // Add existing images as mock files
-            {% for image in part.images %}
-            var mockFile = {
-                name: "{{ image.filename }}",
-                size: {{ image.file_size }},
-                accepted: true,
-                url: "{{ url_for('static', filename='images/' + image.filename) }}",
-                imageId: "{{ image.id }}" // Custom attribute to track DB ID
-            };
-            
-            // Call the default addedfile event
-            this.emit("addedfile", mockFile);
-            
-            // And show the thumbnail
-            this.emit("thumbnail", mockFile, mockFile.url);
-            
-            // Make sure the file is not clickable (not downloadable)
-            mockFile.previewElement.classList.add("dz-success");
-            mockFile.previewElement.classList.add("dz-complete");
-            
-            // Add custom remove button handler
-            var removeButton = mockFile.previewElement.querySelector(".dz-remove");
-            removeButton.addEventListener("click", function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                if (confirm("Remove this image?")) {
-                    // If it's an existing image (has imageId), we need to mark it for deletion
-                    if (mockFile.imageId) {
-                        // Add to a hidden field or array to track deletions
-                        var deletedImages = document.getElementById('deleted-images') || 
-                            document.createElement('input');
-                        deletedImages.type = 'hidden';
-                        deletedImages.id = 'deleted-images';
-                        deletedImages.name = 'deleted_images';
-                        deletedImages.value = (deletedImages.value ? deletedImages.value + ',' : '') + mockFile.imageId;
-                        document.getElementById('part-form').appendChild(deletedImages);
-                    }
-                    
-                    // Remove the file from Dropzone
-                    myDropzone.removeFile(mockFile);
-                }
-            });
-            {% endfor %}
-        }
-    });
 
-    // Rest of your edit mode initialization...
-    window.partEditMode = true;
-    window.partId = {{ part.id }};
+<!-- Load Dropzone.js -->
+<script src="{{ url_for('static', filename='js/dropzone.min.js') }}"></script>
+<script>
+    // Initialize Dropzone (must be before part_editor.js)
+    Dropzone.autoDiscover = false;
     
-    // Delete button handler
-    document.getElementById('delete-part').addEventListener('click', function() {
-        if (confirm('Are you sure you want to delete this part?')) {
-            fetch('/parts/delete/{{ part.id }}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value,
-                    'Content-Type': 'application/json'
-                }
-            }).then(response => {
-                if (response.ok) {
-                    window.location.href = '/parts';
-                }
-            });
-        }
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize edit mode flags
+        window.partEditMode = true;
+        window.partId = {{ part.id }};
+        
+        // Minimal delete handler (can be overridden in part_editor.js)
+        document.getElementById('delete-part')?.addEventListener('click', function() {
+            if (confirm('Are you sure you want to delete this part?')) {
+                fetch('/delete/' + window.partId, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value,
+                        'Content-Type': 'application/json'
+                    }
+                }).then(response => {
+                    if (response.ok) {
+                        window.location.href = '/gallery';
+                    }
+                });
+            }
+        });
     });
-});
 </script>
+
+<!-- Main form handler - MUST come after Dropzone initialization -->
+<script src="{{ url_for('static', filename='js/part_editor.js') }}"></script>
 {% endblock %}
 {% endblock %}

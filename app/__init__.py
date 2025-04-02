@@ -15,6 +15,7 @@ def create_app():
         UPLOAD_FOLDER='app/static/images',
         ALLOWED_EXTENSIONS={'gif', 'png', 'jpg', 'jpeg'},
         MAX_CONTENT_LENGTH=16 * 1024 * 1024,  # 16Mb max upload
+        WTF_CSRF_CHECK_DEFAULT=True,
         WTF_CSRF_TIME_LIMIT=3600,  # 1 hour token expiration
     )
 

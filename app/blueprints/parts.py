@@ -249,43 +249,52 @@ def edit_part(part_id):
     if request.method == 'POST':
         try:
             # Update basic fields
-            part.name = request.form.get('name', part.name)
-            part.description = request.form.get('description', part.description)
-            part.part_number = request.form.get('part_number', part.part_number)
-            part.quantity = int(request.form.get('quantity', part.quantity))
-            part.box = request.form.get('box', part.box)
-            part.position = request.form.get('position', part.position)
+            part.name = request.form['name'][:100]
+            part.description = request.form.get('description', '')[:1024]
+            part.part_number = request.form.get('part_number', '')[:30]
+            part.box = request.form.get('box', '')[:20]
+            part.position = request.form.get('position', '')[:50]
             
             # Update relationships
-            part.brand_id = int(request.form.get('brand_id', part.brand_id))
-            part.part_type_id = int(request.form.get('part_type_id', part.part_type_id))
-            part.location_id = int(request.form.get('location_id', part.location_id))
+            part.brand_id = int(request.form['brand_id'])
+            part.part_type_id = int(request.form['part_type_id'])
+            part.location_id = int(request.form.get('location_id', 0)) or None
             
             # Handle tags
-            tag_names = [t.strip() for t in request.form.get('tags', '').split(',') if t.strip()]
+            tag_names = [t.strip() for t in request.form.getlist('tags[]') if t.strip()]
             part.tags = []
             for name in tag_names:
                 tag = Tag.query.filter_by(name=name).first() or Tag(name=name)
                 part.tags.append(tag)
             
+            # Handle image deletions
+            if 'deleted_images' in request.form:
+                deleted_ids = [int(id) for id in request.form['deleted_images'].split(',') if id]
+                for img_id in deleted_ids:
+                    image = Image.query.get(img_id)
+                    if image and image.part_id == part.id:
+                        db.session.delete(image)
+            
             db.session.commit()
-            flash('Part updated successfully!', 'success')
-            return redirect(url_for('parts.view_part', part_id=part.id))
+            return jsonify({
+                "success": True,
+                "redirect": url_for('parts.view_part', part_id=part.id)
+            })
             
         except Exception as e:
             db.session.rollback()
-            flash(f'Error updating part: {str(e)}', 'error')
+            return jsonify({"error": str(e)}), 400
 
-    # Get all options for dropdowns
+    # GET request - show the form
     brands = Brand.query.order_by(Brand.name).all()
     part_types = PartType.query.order_by(PartType.name).all()
     locations = Location.query.order_by(Location.name).all()
     
     return render_template('edit_part.html',
-                         part=part,
-                         brands=brands,
-                         part_types=part_types,
-                         locations=locations)
+                           part=part,
+                           brands=brands,
+                           part_types=part_types,
+                           locations=locations)
 
 
 @bp.route('/all_images', methods=['GET'])
