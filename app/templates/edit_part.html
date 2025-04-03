@@ -38,6 +38,7 @@
     <textarea name="description" maxlength="1024" placeholder="Description">{{ part.description }}</textarea>
   
     <!-- Pre-populated Dropdowns -->
+    <label for="brand">Brand</label>
     <select name="brand_id">
         <option value="">Select Brand</option>
         {% for brand in brands %}
@@ -45,6 +46,7 @@
         {% endfor %}
     </select>
     
+    <label for="part_type">Part Type</label>
     <select name="part_type_id" required>
         <option value="">Select Type</option>
         {% for type in part_types %}
@@ -53,6 +55,7 @@
     </select>
     
     <!-- Location Selector -->
+    <label for="location">Library Location</label>
     <select name="location_id" id="location_id" required>
         <option value="">Select Location</option>
         {% for location in locations %}
@@ -63,10 +66,12 @@
     <!-- Box and Position -->
     <div class="form-row">
         <div class="form-group">
+            <label for="box">Storage Location in Library</label>
             <input type="text" id="box" name="box" maxlength="20" 
                 placeholder="Box / container number" value="{{ part.box }}">
         </div>
         <div class="form-group">
+            <label for="box">Position in/on Box/Container/Shelf</label>
             <input type="text" id="position" name="position" maxlength="50"
                 placeholder="Location in the store" value="{{ part.position }}">
         </div>
@@ -74,6 +79,7 @@
 
     <!-- Tag Manager -->
     <div class="tag-manager">
+      <label for="tag">Add New Tag</label>
       <input type="text" id="tag-input" placeholder="Add tag (max 8)" maxlength="100">
       <div id="selected-tags">
         {% for tag in part.tags %}
@@ -81,8 +87,11 @@
         <input type="hidden" name="tags[]" value="{{ tag.name }}">
         {% endfor %}
       </div>
-      <div id="existing-tags">
-        <!-- Popular tags appear here as clickable pills -->
+      <div id="existing-tags">{{all_tags}}
+        {% for tag in all_tags %}
+        <span class="tag-pill" data-tag-id="{{ tag.id }}">{{ tag.name }} ×</span>
+        <input type="hidden" name="tags[]" value="{{ tag.name }}">
+        {% endfor %}
       </div>
     </div>
     
