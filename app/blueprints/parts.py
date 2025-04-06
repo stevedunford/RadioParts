@@ -8,6 +8,8 @@ from sqlalchemy import func, or_
 from datetime import datetime
 import os
 from pathlib import Path
+from PIL import Image as PILImage
+from io import BytesIO
 
 
 #
@@ -43,22 +45,7 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@bp.route('/brand/<int:brand_id>')
-def parts_by_brand(brand_id):
-    """Show all parts for a specific brand"""
-    brand = Brand.query.get_or_404(brand_id)
-    parts = Part.query.options(
-        db.joinedload(Part.images),
-        db.joinedload(Part.brand),
-        db.joinedload(Part.part_type)
-    ).filter_by(brand_id=brand_id).all()
-
-    return render_template('brand_parts.html',
-                           brand=brand,
-                           parts=parts)
-
-
-@bp.route('/gallery')
+@bp.route('/')
 def gallery():
     # Initialize query with eager loading
     query = Part.query.options(
@@ -143,83 +130,129 @@ def gallery():
     )
 
 
-@bp.route('/add_part', methods=['GET'])
-def add_part_form():
-    # Pre-fill dropdowns like a well-stocked parts bin
+@bp.route('/debug_form', methods=['POST'])
+def debug_form():
+    print("Form data received:", request.form.to_dict())
+    print("Files received:", request.files.to_dict())
+    return jsonify(request.form.to_dict())
+
+
+@bp.route('/add', methods=['GET', 'POST'])
+@bp.route('/<int:part_id>/edit', methods=['GET', 'POST'])
+def manage_part(part_id=None):
+    part = Part.query.get(part_id) if part_id else None
+    
     brands = Brand.query.order_by(Brand.name).all()
     part_types = PartType.query.order_by(PartType.name).all()
     locations = Location.query.order_by(Location.name).all()
+    all_tags = Tag.query.order_by(Tag.name).all()
+
+    if request.method == 'POST':
+        try:
+            # Start a transaction
+            db.session.begin_nested()
+
+            if part:
+                print(f"Existing part id {part.id} being updated")
+                # Update existing part
+                part.name = request.form.get('name')
+                part.description = request.form.get('description')
+                part.part_number = request.form.get('part_number')
+                part.brand_id = request.form.get('brand_id')
+                part.part_type_id = request.form.get('part_type_id')
+                part.location_id = request.form.get('location_id')
+                part.box = request.form.get('box')
+                part.position = request.form.get('position')
+                
+                # Handle deleted images
+                deleted_images = request.form.get('deleted_images', '').split(',')
+                for image_id in deleted_images:
+                    if image_id:
+                        image = Image.query.get(int(image_id))
+                        if image:
+                            db.session.delete(image)
+                
+                # Handle tags - clear existing first
+                part.tags.clear()
+                for tag_name in request.form.getlist('tags[]'):
+                    tag = Tag.query.filter(func.lower(Tag.name) == func.lower(tag_name)).first()
+                    if not tag:
+                        tag = Tag(name=tag_name)
+                        db.session.add(tag)
+                    part.tags.append(tag)
+
+                # Update part in database
+                db.session.commit()
+
+            else:
+                # Create new part
+                print("Creating a new part")
+                part = Part(
+                    name=request.form.get('name'),
+                    description=request.form.get('description'),
+                    part_number=request.form.get('part_number'),
+                    brand_id=request.form.get('brand_id'),
+                    part_type_id=request.form.get('part_type_id'),
+                    location_id=request.form.get('location_id'),
+                    box=request.form.get('box'),
+                    position=request.form.get('position')
+                )
+                db.session.add(part)
+                db.session.flush()  # Get the ID before commit
+                
+                # Handle tags for new part
+                for tag_name in request.form.getlist('tags[]'):
+                    tag = Tag.query.filter(func.lower(Tag.name) == func.lower(tag_name)).first()
+                    if not tag:
+                        tag = Tag(name=tag_name)
+                        db.session.add(tag)
+                    part.tags.append(tag)
+
+            # Handle image associations
+            image_ids = request.form.getlist('image_ids[]')
+            for image_id in image_ids:
+                image = Image.query.get(int(image_id))
+                if image and image not in part.images:
+                    part.images.append(image)
+
+            # New response handling logic:
+            response_data = {
+                'success': True,
+                'part_id': part.id,
+                'message': 'Part saved successfully',
+                'redirect': url_for('parts.view_part', part_id=part.id)
+            }
+
+            if request.accept_mimetypes.accept_json or 'application/json' in request.headers.get('Accept', ''):
+                return jsonify(response_data), 200, {'Content-Type': 'application/json'}
+            
+            flash(response_data['message'], 'success')
+            return redirect(response_data['redirect'])
+            
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Error saving part: {str(e)}")
+            
+            error_response = {
+                'success': False,
+                'message': f'Error saving part: {str(e)}'
+            }
+
+            if request.accept_mimetypes.accept_json or 'application/json' in request.headers.get('Accept', ''):
+                return jsonify(error_response), 400, {'Content-Type': 'application/json'}
+            
+            flash(error_response['message'], 'error')
+            return redirect(request.url)
     
-    return render_template(
-        'add_part.html',
-        brands=brands,
-        part_types=part_types,
-        locations=locations
-    )
+    return render_template('manage_part.html',
+                         part=part,
+                         brands=brands,
+                         part_types=part_types,
+                         locations=locations,
+                         all_tags=all_tags)
 
 
-@bp.route('/add_part', methods=['POST'])
-def add_part():
-    print("\n=== ADD_PART REQUEST ===")
-    print("Form data:", request.form.to_dict())
-    print("Image IDs:", request.form.getlist('image_ids[]'))
-
-    data = request.form
-    try:
-        # Validate required fields
-        required_fields = ['name', 'brand_id', 'part_type_id']
-        if not all(field in request.form for field in required_fields):
-            return jsonify({"error": "Missing required fields"}), 400
-        
-        # Create part (validate lengths like a Philco QC inspector)
-        new_part = Part(
-            name=data['name'][:100],  # Enforce 100-char limit
-            description=data.get('description', '')[:1024],
-            part_number=data.get('part_number', '')[:30],
-            brand_id=data['brand_id'],
-            part_type_id=data['part_type_id'],
-            location_id=data.get('location_id'),
-            box=data['box'][:20],
-            position=data['position'][:50],
-        )
-        db.session.add(new_part)
-        db.session.flush()  # Get part.id before commit
-
-        # -- Critical Fix: Moved tag handling BEFORE commit/return --
-        # Handle tags (max 8, like octal tube pins)
-        tag_names = helpers.validate_tags(request.form.getlist('tags[]'))
-        for name in tag_names:
-            tag = Tag.query.filter_by(name=name[:100]).first() or Tag(name=name)
-            new_part.tags.append(tag)
-
-        # Handle image associations (NEW IMPROVED VERSION)
-        image_ids = request.form.getlist('image_ids[]')
-        for img_id in image_ids:
-            if img_id:  # Skip empty/None
-                image = Image.query.get(img_id)
-                if image:
-                    # Set both forward and backward references
-                    new_part.images.append(image)
-                    image.part_id = new_part.id  # Explicitly set foreign key
-                    db.session.add(image)  # Ensure change is tracked
-
-        db.session.commit()  # Single atomic commit
-        print(f"Successfully created part {new_part.id} with {len(image_ids)} images")
-        
-        return jsonify({
-            "success": True,
-            "part_id": new_part.id,
-            "image_count": len(image_ids),
-            "images": [img.id for img in new_part.images]  # Verification
-        })
-        
-    except Exception as e:
-        print("ERROR:", str(e))
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 400
-
-
-@bp.route('/part/<int:part_id>')
+@bp.route('/<int:part_id>')
 def view_part(part_id):
     """Display a single part with all details"""
     part = Part.query.options(
@@ -236,209 +269,6 @@ def view_part(part_id):
                            current_year=datetime.now().year)
 
 
-@bp.route('/edit/<int:part_id>', methods=['GET', 'POST'])
-def edit_part(part_id):
-    part = Part.query.options(
-        db.joinedload(Part.brand),
-        db.joinedload(Part.part_type),
-        db.joinedload(Part.location),
-        db.joinedload(Part.tags),
-        db.joinedload(Part.images)
-    ).get_or_404(part_id)
-
-    if request.method == 'POST':
-        try:
-            # Update basic fields
-            part.name = request.form['name'][:100]
-            part.description = request.form.get('description', '')[:1024]
-            part.part_number = request.form.get('part_number', '')[:30]
-            part.box = request.form.get('box', '')[:20]
-            part.position = request.form.get('position', '')[:50]
-            
-            # Update relationships
-            part.brand_id = int(request.form['brand_id'])
-            part.part_type_id = int(request.form['part_type_id'])
-            part.location_id = int(request.form.get('location_id', 0)) or None
-            
-            # Handle tags
-            tag_names = [t.strip() for t in request.form.getlist('tags[]') if t.strip()]
-            part.tags = []
-            for name in tag_names:
-                tag = Tag.query.filter_by(name=name).first() or Tag(name=name)
-                part.tags.append(tag)
-            
-            # Handle image deletions
-            if request.form.get('deleted_images'):
-                deleted_ids = [int(id) for id in request.form['deleted_images'].split(',') if id]
-                for img_id in deleted_ids:
-                    image = Image.query.get(img_id)
-                    if image and image.part_id == part.id:
-                        db.session.delete(image)
-            
-            # Handle new images
-            image_ids = request.form.getlist('image_ids[]')
-            for img_id in image_ids:
-                if img_id:  # Skip empty/None
-                    image = Image.query.get(img_id)
-                    if image and not image.part_id:  # Only add if not already assigned
-                        # Set both forward and backward references
-                        part.images.append(image)
-                        image.part_id = part.id  # Explicitly set foreign key
-                        db.session.add(image)  # Ensure change is tracked
-            
-            db.session.commit()
-            return jsonify({
-                "success": True,
-                "redirect": url_for('parts.view_part', part_id=part.id)
-            })
-            
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"error": str(e)}), 400
-
-    # GET request - show the form
-    brands = Brand.query.order_by(Brand.name).all()
-    part_types = PartType.query.order_by(PartType.name).all()
-    locations = Location.query.order_by(Location.name).all()
-    
-    return render_template('edit_part.html',
-                           part=part,
-                           brands=brands,
-                           part_types=part_types,
-                           locations=locations)
-
-
-@bp.route('/all_images', methods=['GET'])
-def get_images():
-    """Get all images with their tags"""
-    images = Image.query.options(db.joinedload(Image.tags)).all()
-    return jsonify([{
-        'id': img.id,
-        'filename': img.filename,
-        'description': img.description,
-        'created_at': img.created_at.isoformat(),
-        'tags': [{'id': t.id, 'name': t.name} for t in img.tags],
-        'url': f"/static/images/{img.filename}"
-    } for img in images])
-
-
-@bp.route('/upload_images', methods=['POST'])
-def upload_images():
-    """Handle file uploads with Dropzone-compatible responses"""
-    if 'files' not in request.files:
-        return jsonify(error="No files uploaded"), 400
-
-    upload_dir = Path(current_app.config['UPLOAD_FOLDER'])
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    
-    files = request.files.getlist('files')
-    if not files or all(f.filename == '' for f in files):
-        return jsonify(error="No selected files"), 400
-
-    responses = []
-    for file in files:
-        if not file or file.filename == '':
-            continue
-
-        try:
-            if not allowed_file(file.filename):
-                continue
-                
-            filename = secure_filename(file.filename)
-            save_path = upload_dir / filename
-
-            # Handle duplicates
-            counter = 1
-            while save_path.exists():
-                name, ext = os.path.splitext(filename)
-                filename = f"{name}_{counter}{ext}"
-                save_path = upload_dir / filename
-                counter += 1
-
-            # Save file
-            file.save(str(save_path.absolute()))
-            if not save_path.exists():
-                raise IOError("File save verification failed")
-
-            # Create DB record
-            new_image = Image(filename=filename)
-            db.session.add(new_image)
-            db.session.flush()  # Get ID without commit
-
-            # Critical change: Single-file response format
-            response = {
-                "id": new_image.id,  # Must be 'id' for Dropzone
-                "filename": filename,
-                "url": url_for('static', filename=f"images/{filename}"),
-                "size": save_path.stat().st_size
-            }
-            responses.append(response)
-            
-            # Immediate commit per file (better for Dropzone)
-            db.session.commit()
-
-        except Exception as e:
-            db.session.rollback()
-            if 'save_path' in locals() and save_path.exists():
-                save_path.unlink()
-            current_app.logger.error(f"Upload failed: {str(e)}")
-            continue
-
-    if responses:
-        # Dropzone expects single-file responses
-        if len(responses) == 1:
-            return jsonify(responses[0]), 201
-        return jsonify(responses), 201
-    
-    return jsonify(error="No valid files processed"), 400
-
-
-@bp.route('/image/<int:image_id>', methods=['GET'])
-def get_image(image_id):
-    """Get single image details"""
-    image = Image.query.options(db.joinedload(Image.tags)).get_or_404(image_id)
-    return jsonify({
-        'id': image.id,
-        'filename': image.filename,
-        'description': image.description,
-        'created_at': image.created_at.isoformat(),
-        'tags': [{'id': t.id, 'name': t.name} for t in image.tags],
-        'url': f"/static/images/{image.filename}"
-    })
-
-
-@bp.route('/<int:image_id>/update', methods=['POST'])
-def update_image(image_id):
-    image = Image.query.get_or_404(image_id)
-    image.description = request.form.get('description', '')[:500]  # Truncate to 500 chars
-    db.session.commit()
-    flash('Image updated successfully!', 'success')
-    return redirect(url_for('images.gallery'))
-
-
-@bp.route('/delete_image/<int:image_id>', methods=['DELETE'])
-def delete_image(image_id):
-    image = Image.query.get_or_404(image_id)
-    print(f"Made it to delete for image id {image_id}")
-    try:
-        # Build absolute path
-        image_path = Path(current_app.config['UPLOAD_FOLDER']) / image.filename
-        print(image_path)
-        # Verify file exists before deletion
-        if image_path.exists():
-            image_path.unlink()  # Delete file
-            db.session.delete(image)  # Delete DB record
-            db.session.commit()
-            return jsonify({"success": True})
-        
-        return jsonify({"error": "File not found"}), 404
-        
-    except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f"Delete failed: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-
-
 @bp.route('/tags/<string:tag_name>')
 def parts_by_tag(tag_name):
     """Get all parts with a specific tag"""
@@ -446,81 +276,101 @@ def parts_by_tag(tag_name):
     return jsonify([p.to_dict() for p in parts])
 
 
-@bp.route('/<int:image_id>/tags', methods=['GET'])
-def get_image_tags(image_id):
-    """Get tags for a specific image"""
-    image = Image.query.options(db.joinedload(Image.tags)).get_or_404(image_id)
-    return jsonify([{
-        'id': tag.id,
-        'name': tag.name
-    } for tag in image.tags])
+@bp.route('/upload_images', methods=['POST'])
+def upload_images():
+    print(request.files)  # Debug what's actually received
+    """Handle file uploads with image processing"""
+    if 'file' not in request.files:  # Changed from 'files' to 'file'
+        return jsonify(error="No files uploaded"), 400
+    
+    part_id = request.form.get('part_id')
+    part = Part.query.get(part_id) if part_id else None
+    upload_dir = Path(current_app.config['UPLOAD_FOLDER'])
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    # Enforce 8-image limit
+    current_count = len(part.images) if part else 0
+    if current_count >= 8:
+        return jsonify({
+            'error': 'You can only have 8 images per part',
+            'message': 'Maximum 8 images allowed',
+            'userFriendly': '❌ Maximum 8 images per part (already has {current_count})'
+        }), 400
+   
+    # Get single file (FilePond sends one at a time)
+    file = request.files['file']  # Changed from getlist('files')
+    responses = []
+
+    # Remove the file iteration loop since we handle one file
+    if file and file.filename != '':
+        try:
+            if not allowed_file(file.filename):
+                return jsonify(error="Invalid file type"), 400
+                
+            filename = secure_filename(file.filename)
+            save_path = upload_dir / filename
+
+            # Process image
+            img = PILImage.open(file.stream)
+            
+            # Resize if needed (maintain aspect ratio)
+            if img.width > 1200 or img.height > 1200:
+                img.thumbnail((1200, 1200))
+            
+            # Save with quality compression
+            buffer = BytesIO()
+            img.save(buffer, format='JPEG', quality=70)
+            buffer.seek(0)
+            
+            # Handle duplicates
+            counter = 1
+            while save_path.exists():
+                name, ext = os.path.splitext(filename)
+                filename = f"{name}_{counter}.jpg"  # Force JPG extension
+                save_path = upload_dir / filename
+                counter += 1
+
+            with open(save_path, 'wb') as f:
+                f.write(buffer.getvalue())
+
+            new_image = Image(
+                filename=filename,
+                part_id=part.id if part else None
+            )
+            db.session.add(new_image)
+            db.session.flush()
+
+            response = {
+                "id": new_image.id,
+                "name": filename,
+                "url": url_for('static', filename=f"images/{filename}"),
+                "size": save_path.stat().st_size
+            }
+            responses.append(response)
+            db.session.commit()
+
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({
+                'error': 'processing_error',
+                'message': str(e),
+                'userFriendly': '❌ Failed to process image'
+            }),     500
+
+    return jsonify(response), 201  # Return single response
+    #   return jsonify(responses[0] if len(responses) == 1 else responses), 201
 
 
-@bp.route('/<int:image_id>/tags', methods=['POST'])
-def add_image_tag(image_id):
-    """Add tag to image (creates tag if new)"""
-    data = request.get_json()
-    if not data or 'name' not in data:
-        return jsonify(error="Tag name required"), 400
-        
-    tag_name = data['name'].strip().lower()
-    if not tag_name:
-        return jsonify(error="Empty tag name"), 400
-    if len(tag_name) > 20:
-        return jsonify(error="Tag too long (max 20 chars)"), 400
-
+@bp.route('/delete_image/<int:image_id>', methods=['DELETE'])
+def delete_image(image_id):
     image = Image.query.get_or_404(image_id)
-    
-    # Check if already tagged
-    if any(t.name.lower() == tag_name for t in image.tags):
-        return jsonify(error="Image already has this tag"), 400
-        
-    # Check tag limit
-    if len(image.tags) >= 8:
-        return jsonify(error="Maximum 8 tags per image"), 400
-
-    # Find or create tag
-    tag = Tag.query.filter(func.lower(Tag.name) == tag_name).first()
-    is_new = False
-    
-    if not tag:
-        tag = Tag(name=tag_name.capitalize())
-        db.session.add(tag)
-        is_new = True
-    
-    image.tags.append(tag)
-    db.session.commit()
-    
-    return jsonify({
-        'id': tag.id,
-        'name': tag.name,
-        'is_new': is_new
-    }), 201 if is_new else 200
-
-
-@bp.route('/<int:image_id>/tags/<int:tag_id>/add', methods=['POST'])
-def add_tag(image_id, tag_id):
-    # Check if association already exists
-    if not db.session.query(ImageTag).filter_by(iid=image_id, tid=tag_id).first():
-        association = ImageTag(iid=image_id, tid=tag_id)
-        db.session.add(association)
+    try:
+        image_path = Path(current_app.config['UPLOAD_FOLDER']) / image.filename
+        if image_path.exists():
+            image_path.unlink()
+        db.session.delete(image)
         db.session.commit()
-    return jsonify({'status': 'success'})
-
-
-@bp.route('/<int:image_id>/tags/<int:tag_id>/remove', methods=['POST'])
-def remove_tag(image_id, tag_id):
-    association = db.session.query(ImageTag).filter_by(
-        iid=image_id, tid=tag_id
-    ).first_or_404()
-    db.session.delete(association)
-    db.session.commit()
-    return jsonify({'status': 'success'})
-
-
-@bp.route('/images/<int:image_id>/tags/available')
-def available_tags(image_id):
-    image = Image.query.get_or_404(image_id)
-    all_tags = Tag.query.order_by(Tag.name).all()
-    available = [tag for tag in all_tags if tag not in image.tags]
-    return jsonify([{'id': tag.id, 'name': tag.name} for tag in available])
+        return jsonify({"success": True, "message": "Image deleted"})  # Explicit JSON response
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500

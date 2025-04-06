@@ -1,0 +1,329 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<form id="part-form" class="art-deco-form" method="POST" enctype="multipart/form-data" data-upload-url="{{ url_for('parts.upload_images') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="part_id" value="{{ part.id if part }}">
+    <input type="hidden" name="deleted_images" id="deleted_images">
+
+    <!-- Name/Description Fields -->
+    <div class="form-group">
+        <label for="name">Part Name</label>
+        <input type="text" id="name" name="name" 
+               maxlength="100" placeholder="" value="{{ part.name if part }}">
+    </div>
+    <div class="form-group">
+        <label for="part_number">Part Number</label>
+        <input type="text" id="part_number" name="part_number" 
+               maxlength="30" placeholder="if known, e.g. R6301" value="{{ part.part_number if part }}">
+    </div>
+
+    <!-- Image Upload/Display -->
+    <div class="upload-section">
+        <!-- FilePond will replace this input -->
+        <input type="file" class="filepond" name="file" multiple>
+        
+        <!-- Existing images in edit mode -->
+        <div id="existing-images" class="existing-images-grid">
+            {% if part %}
+                {% for image in part.images %}
+                <div class="existing-image-wrapper">
+                    <img src="{{ url_for('static', filename='images/' + image.filename) }}" 
+                        alt="{{ image.filename }}" class="existing-image" 
+                        data-image-id="{{ image.id }}">
+                        <button type="button" class="delete-image" data-image-id="{{ image.id }}">X</button>
+                    <input type="hidden" name="image_ids[]" value="{{ image.id }}">
+                </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+
+    <textarea name="description" maxlength="1024" placeholder="Description">
+        {{- part.description if part -}}
+    </textarea>
+  
+    <!-- Pre-populated Dropdowns -->
+    <label for="brand">Brand</label>
+    <select name="brand_id">
+        <option value="">Select Brand</option>
+        {% for brand in brands %}
+        <option value="{{ brand.id }}" {% if part and part.brand_id == brand.id %}selected{% endif %}>
+            {{ brand.name }}
+        </option>
+        {% endfor %}
+    </select>
+    
+    <label for="part_type">Part Type</label>
+    <select name="part_type_id" required>
+        <option value="">Select Type</option>
+        {% for type in part_types %}
+        <option value="{{ type.id }}" {% if part and part.part_type_id == type.id %}selected{% endif %}>
+            {{ type.name }}
+        </option>
+        {% endfor %}
+    </select>
+    
+    <!-- Location Selector -->
+    <label for="location">Library Location</label>
+    <select name="location_id" id="location_id" required>
+        <option value="">Select Location</option>
+        {% for location in locations %}
+        <option value="{{ location.id }}" {% if part and part.location_id == location.id %}selected{% endif %}>
+            {{ location.name }}
+        </option>
+        {% endfor %}
+    </select>
+
+    <!-- Box and Position -->
+    <div class="form-row">
+        <div class="form-group">
+            <label for="box">Storage Location in Library</label>
+            <input type="text" id="box" name="box" maxlength="20" 
+                placeholder="Box / container number" value="{{ part.box if part }}">
+        </div>
+        <div class="form-group">
+            <label for="box">Position in/on Box/Container/Shelf</label>
+            <input type="text" id="position" name="position" maxlength="50"
+                placeholder="Location in the store" value="{{ part.position if part }}">
+        </div>
+    </div>
+
+    <!-- Enhanced Tag Manager -->
+    <div class="tag-manager">
+        <h3>Tags</h3>
+        <div class="tag-input-group">
+            <input type="text" id="tag-input" placeholder="Add tag (max 8)" maxlength="100" 
+                   aria-label="Add new tag">
+            <button type="button" id="add-tag-btn" class="vintage-button small-button">
+                <span class="button-text">Add</span>
+            </button>
+        </div>
+        
+        <!-- Selected Tags -->
+        <div class="tag-section">
+            <h4>Current Tags</h4>
+            <div id="selected-tags" class="tag-cloud">
+                {% if part %}
+                    {% for tag in part.tags %}
+                    <span class="tag part-tag" data-tag-name="{{ tag.name }}">
+                        {{ tag.name }}
+                        <span class="remove-tag" aria-hidden="true">×</span>
+                        <input type="hidden" name="tags[]" value="{{ tag.name }}">
+                    </span>
+                    {% endfor %}
+                {% else %}
+                    <p class="no-tags-message">No tags added yet</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Suggested Tags -->
+        <div class="tag-section">
+            <h4>Available Tags</h4>
+            <div id="existing-tags" class="tag-cloud">
+                {% for tag in all_tags %}
+                    {% if not part or tag not in part.tags %}
+                    <span class="tag available-tag" data-tag-name="{{ tag.name }}">
+                        {{ tag.name }}
+                        <span class="add-tag" aria-hidden="true">+</span>
+                    </span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-footer">
+        <button type="submit" class="vintage-button" id="submit-button">
+            <span class="button-text">
+                {% if part %}Update{% else %}Add New{% endif %} Part
+            </span>
+            <span class="button-icon">⚡</span>
+        </button>
+        {% if part %}
+        <button type="button" id="delete-part" class="vintage-button delete-button">
+            <span class="button-text">Delete Part</span>
+            <span class="button-icon">🗑️</span>
+        </button>
+        {% endif %}
+    </div>
+</form>
+
+{% block scripts %}
+<!-- In your template head -->
+<link href="https://unpkg.com/filepond/dist/filepond.min.css" rel="stylesheet">
+<link href="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.min.css" rel="stylesheet">
+
+<!-- At end of body -->
+<script src="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.min.js"></script>
+<script src="https://unpkg.com/filepond-plugin-image-exif-orientation/dist/filepond-plugin-image-exif-orientation.min.js"></script>
+<script src="https://unpkg.com/filepond-plugin-image-resize/dist/filepond-plugin-image-resize.min.js"></script>
+<script src="https://unpkg.com/filepond/dist/filepond.min.js"></script>
+
+<script>
+// Register plugins
+FilePond.registerPlugin(
+    FilePondPluginImageResize,
+    FilePondPluginImagePreview,
+    FilePondPluginImageExifOrientation
+);
+
+// Create FilePond instance
+const pond = FilePond.create(document.querySelector('.filepond'), {
+    maxFiles: 8,
+    maxFileSize: '16MB',
+    maxParallelUploads: 3,
+    allowMultiple: true,
+    maxFilesExceededCallback: (files) => {
+        showAlert('Maximum 8 images allowed per part', 'error');
+    },
+    acceptedFileTypes: ['image/*'],
+    imageResizeTargetWidth: 1200,
+    imageResizeMode: 'contain',
+    imageResizeUpscale: false,
+    stylePanelAspectRatio: 0.3,
+    credits: false,
+    allowDrop: true,
+    dropOnPage: true,
+    dropOnElement: false,
+    labelIdle: `
+        <span style="font-size: 1.2em;">
+            Drag & drop images or <span class="filepond--label-action">browse</span>
+        </span>
+        <div style="margin-top: 1em; font-size: 0.9em; color: #666;">
+            Maximum 8 images • JPG/PNG/GIF only
+        </div>
+    `,
+    server: {
+        url: '/parts',
+        process: {
+            url: '/upload_images',
+            method: 'POST',
+            headers: {
+                'X-CSRF-Token': document.querySelector('[name="csrf_token"]').value
+            },
+            ondata: (formData) => {
+                formData.append('part_id', document.querySelector('[name="part_id"]').value);
+                return formData;
+            },
+            onerror: (response) => {
+                let errorMsg = 'Upload failed';
+                try {
+                    const errorData = JSON.parse(response);
+                    errorMsg = errorData.error || errorData.message || errorMsg;
+                } catch (e) {
+                    console.error('Error parsing error response:', e);
+                }
+                showAlert(errorMsg, 'error');
+            },
+        },
+        revert: (uniqueFileId, load, error) => {
+            const fileData = JSON.parse(uniqueFileId);
+            const imageId = fileData.id;
+            
+            fetch(`/parts/delete_image/${imageId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-Token': document.querySelector('[name="csrf_token"]').value,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Delete failed');
+                return response.json();
+            })
+            .then(data => data.success ? load() : error(data.message))
+            .catch(err => error(err.message));
+        }
+    }
+});
+
+pond.on('addfile', (error, file) => {
+    if (error) {
+        showAlert(error.message, 'error');
+        return;
+    }
+    
+    if (pond.getFiles().length > 8) {
+        showAlert('Maximum 8 images allowed per part', 'error');
+        pond.removeFile(file);
+    }
+});
+
+// Enhanced Tag Management
+document.addEventListener('DOMContentLoaded', function() {
+    const tagInput = document.getElementById('tag-input');
+    const addTagBtn = document.getElementById('add-tag-btn');
+    const selectedTags = document.getElementById('selected-tags');
+    const existingTags = document.getElementById('existing-tags');
+    
+    // Add new tag from input
+    addTagBtn.addEventListener('click', addNewTag);
+    tagInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') addNewTag();
+    });
+    
+    // Add tag from suggestions
+    existingTags.addEventListener('click', function(e) {
+        const tagElement = e.target.closest('.available-tag');
+        if (tagElement) {
+            const tagName = tagElement.dataset.tagName;
+            addTagToSelected(tagName);
+            tagElement.remove();
+        }
+    });
+    
+    // Remove tag
+    selectedTags.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-tag')) {
+            const tagElement = e.target.closest('.part-tag');
+            const tagName = tagElement.dataset.tagName;
+            tagElement.remove();
+            addTagToAvailable(tagName);
+        }
+    });
+    
+    function addNewTag() {
+        const tagName = tagInput.value.trim();
+        if (tagName && !tagExists(tagName)) {
+            addTagToSelected(tagName);
+            tagInput.value = '';
+        }
+    }
+    
+    function tagExists(tagName) {
+        return document.querySelector(`.part-tag[data-tag-name="${tagName}"]`) !== null;
+    }
+    
+    function addTagToSelected(tagName) {
+        const tagHtml = `
+            <span class="tag part-tag" data-tag-name="${tagName}">
+                ${tagName}
+                <span class="remove-tag" aria-hidden="true">×</span>
+                <input type="hidden" name="tags[]" value="${tagName}">
+            </span>
+        `;
+        selectedTags.insertAdjacentHTML('beforeend', tagHtml);
+        
+        // Remove the "no tags" message if present
+        const noTagsMsg = selectedTags.querySelector('.no-tags-message');
+        if (noTagsMsg) noTagsMsg.remove();
+    }
+    
+    function addTagToAvailable(tagName) {
+        const tagHtml = `
+            <span class="tag available-tag" data-tag-name="${tagName}">
+                ${tagName}
+                <span class="add-tag" aria-hidden="true">+</span>
+            </span>
+        `;
+        existingTags.insertAdjacentHTML('beforeend', tagHtml);
+    }
+});
+</script>
+
+<!-- Main form handler -->
+<script src="{{ url_for('static', filename='js/part_editor.js') }}"></script>
+{% endblock %}
+{% endblock %}

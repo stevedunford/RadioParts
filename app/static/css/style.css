@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Poiret+One&display=swap');
 
-
 /* ============================================ */
 /* CSS Variables & Base Styles - Art Deco Radio */
 /* ============================================ */
@@ -8,6 +7,7 @@
     /* Color Palette - Inspired by 1930s Radios */
     --primary: #e6c229;       /* Bakelite gold */
     --secondary: #2a2d34;     /* Dark cabinet wood */
+    --sorta-dark: #817b57;    /* Not so dark */
     --accent: #927d0a;        /* Vacuum tube glow */
     --light: #f8f5f2;         /* Ivory dials */
     --semi-light: #cdc9c6;    /* Weathered knobs */
@@ -15,6 +15,13 @@
     --success: #4caf50;       /* Tuning success */
     --warning: #ff9800;       /* Signal warning */
     --error: #f44336;         /* Overload red */
+
+    /* Updated shadow variables for softer look */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
+    --shadow-primary: 0 4px 12px rgba(230, 194, 41, 0.2);
     
     /* Art Deco Typography */
     --font-main: 'Montserrat', sans-serif;
@@ -32,7 +39,7 @@
 }
 
 /* ==================== */
-/* BASE STYLES - The Foundation 
+/* BASE STYLES - The Foundation */
 /* ==================== */
 body {
     font-family: var(--font-main);
@@ -53,7 +60,7 @@ body::before {
     height: 8px;
     background: var(--radio-grill);
     z-index: 100;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    box-shadow: var(--shadow-sm);
 }
 
 h1, h2, h3, h4 {
@@ -80,7 +87,7 @@ h1, h2, h3, h4 {
 }
 
 /* ==================== */
-/* ART DECO NAVIGATION - Radio Console Style
+/* ART DECO NAVIGATION - Radio Console Style */
 /* ==================== */
 .art-deco-nav {
     background: var(--lt-color-gray-700);
@@ -89,8 +96,7 @@ h1, h2, h3, h4 {
     align-items: center;
     padding: 0 2rem;
     height: 70px;
-    /** border-bottom: 3px solid var(--primary); **/
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    box-shadow: var(--shadow-md);
     position: relative;
     z-index: 1000;
 }
@@ -177,7 +183,7 @@ h1, h2, h3, h4 {
     background: var(--light);
     min-width: 220px;
     padding: 0.5rem 0;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    box-shadow: var(--shadow-lg);
     opacity: 0;
     visibility: hidden;
     transform: translateY(10px);
@@ -227,23 +233,14 @@ h1, h2, h3, h4 {
     transform: translateY(-2px);
 }
 
-/* Content Wrapper Adjustment
-.content-wrapper {
-    padding-top: 2rem;
-} */
-
 /* ==================== */
-/* ART DECO COMPONENTS - Radio Inspired 
+/* ART DECO COMPONENTS - Radio Inspired */
 /* ==================== */
 
 /** FORMS **/
-/* PROPOSED ART DECO FORM STYLES */
 .art-deco-form {
     background: var(--light);
-    padding-top: 1rem;
-    padding-left: 1rem;
-    padding-bottom: 1rem;
-    padding-right: 3rem;
+    padding: 1rem 3rem 1rem 1rem;
     border: 3px solid var(--primary);
     box-shadow: 8px 8px 0 var(--dark);
 }
@@ -288,10 +285,8 @@ h1, h2, h3, h4 {
 .art-deco-card {
     background: var(--light);
     border-radius: 0;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    box-shadow: var(--shadow-lg);
     padding: 1.5rem;
-    /**margin: 2rem auto;
-    max-width: 1200px;**/
     border: 3px solid var(--primary);
     position: relative;
     overflow: hidden;
@@ -321,7 +316,7 @@ h1, h2, h3, h4 {
 }
 
 /* ==================== */
-/* PART VIEW - Radio Faceplate Style 
+/* PART VIEW - Radio Faceplate Style */
 /* ==================== */
 p.part-details-top {
     color: var(--semi-light);
@@ -378,14 +373,157 @@ p.part-details-top {
     border-radius: 50%;
 }
 
-/* ==================== */
-/* IMAGES               */
-/* ==================== */
-.art-deco-thumbnail  {
+//* FILEPOND CONFIG *//
+.filepond--image-editor {
+    --filepond--image-edit-background: rgba(0, 0, 0, 0.8);
+}
+
+.filepond--image-edit-button {
+    background: rgba(255, 255, 255, 0.8);
+}
+
+/* Enhanced Drop Zone Styling */
+.filepond--root {
+    min-height: 200px; /* Increased height */
+    margin-bottom: 20px;
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    background: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+/* Hover/Active States */
+.filepond--root:hover,
+.filepond--root.filepond--hopper {
+    border-color: #4285f4;
+    background: #e9f0fd;
+}
+
+/* Drag-over highlight */
+.filepond--root.filepond--drop {
+    border-color: #34a853;
+    background: #e6f4ea;
+}
+
+/* Label styling */
+.filepond--panel-root {
+    padding: 2em;
+    color: #5f6368;
+}
+
+/* Preview items */
+.filepond--item {
+    margin: 0.5em;
+}
+
+@keyframes pulseBorder {
+    0% { border-color: #4285f4; }
+    50% { border-color: #34a853; }
+    100% { border-color: #4285f4; }
+}
+
+.filepond--root.filepond--hopper {
+    animation: pulseBorder 2s infinite;
+}
+
+/* Existing Images Grid */
+.existing-images-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.existing-image-wrapper {
+    position: relative;
+    border: 2px solid var(--semi-light);
+    transition: all 0.3s;
+}
+
+.existing-image-wrapper:hover {
+    border-color: var(--primary);
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.existing-image {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    cursor: zoom-in;
+}
+
+.delete-image {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: var(--error);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-image:hover {
+    background: #d32f2f;
+}
+
+/* Lightbox Styles */
+.lightbox {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.95);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.lightbox-content {
+    position: relative;
+    max-width: 90%;
+    max-height: 90%;
+}
+
+.lightbox-content img {
+    max-width: 100%;
+    max-height: 90vh;
+    border: 5px solid var(--primary);
+    box-shadow: 0 0 30px rgba(230, 194, 41, 0.3);
+}
+
+.close-lightbox {
+    position: absolute;
+    top: -50px;
+    right: 0;
+    background: var(--error);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-lightbox:hover {
+    background: #d32f2f;
 }
 
 /* ==================== */
-/* VINTAGE CONTROLS - Knobs & Dials 
+/* VINTAGE CONTROLS - Knobs & Dials */
 /* ==================== */
 .vintage-button {
     background: var(--primary);
@@ -427,7 +565,7 @@ p.part-details-top {
 }
 
 /* ==================== */
-/* PLACEHOLDER STYLES - Under Construction 
+/* PLACEHOLDER STYLES - Under Construction */
 /* ==================== */
 .placeholder-message {
     text-align: center;
@@ -452,35 +590,8 @@ p.part-details-top {
 }
 
 /* ==================== */
-/* RESPONSIVE ADJUSTMENTS - For all screen sizes 
+/* ART DECO MODAL STYLES */
 /* ==================== */
-@media (max-width: 768px) {
-    .part-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .art-deco-card {
-        padding: 1.5rem;
-    }
-    
-    .section-header::after {
-        left: 15%;
-        width: 70%;
-    }
-}
-
-/* ==================== */
-/* ART DECO PART PAGE ENHANCEMENTS */
-/* ==================== */
-.part-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-}
-
-/* Image Gallery */
-
-/* Popup/Modal Styles */
 .art-deco-modal {
     display: none;
     position: fixed;
@@ -804,173 +915,32 @@ p.part-details-top {
     }
 }
 
-
-/******************
- * Gallery Layout *
- ******************/
- /* Fix text visibility */
-.part-info h3, 
-.part-meta .brand, 
-.part-meta .type {
-    color: var(--secondary) !important;
-}
-
-/* Thumbnail sizing fix */
-.part-thumbnail img {
-    width: 96%;
-    height: 200px;
-    object-fit: contain;
-    padding: 15px;
-    background: white;
-    border: 1px solid var(--semi-light);
-}
-
-.filters-panel h3 {
-    color: var(--dark);
-    font-size: larger;
-}
-
-/* Checkbox styling */
-.filter-option {
-    color: var(--secondary) !important;
-}
-
-.filter-option input[type="radio"] {
-    margin-right: 8px;
-    accent-color: var(--primary);
-}
-
-/* Style radio buttons like vintage dials */
-input[type="radio"] {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 18px;
-    height: 18px;
-    border: 2px solid var(--primary);
-    border-radius: 50%;
-    margin-right: 8px;
-    position: relative;
-    top: 3px;
-}
-
-input[type="radio"]:checked {
-    background: radial-gradient(var(--primary) 50%, transparent 50%);
-}
-
-.gallery-container {
-    display: grid;
-    grid-template-columns: 280px 1fr;
-    gap: 2rem;
-}
-
-/* Search Box */
-.search-box {
-    display: flex;
-    margin-bottom: 1.5rem;
-}
-
-.search-box input {
-    flex-grow: 1;
-    padding: 0.8rem;
-    border: 2px solid var(--primary);
-}
-
-.search-box button {
-    background: var(--primary);
-    color: var(--secondary);
-    border: none;
-    padding: 0 1.5rem;
-    cursor: pointer;
-}
-
-.searchable-dropdown {
-    position: relative;
-    margin-bottom: 1rem;
-}
-
-.searchable-dropdown input[type="text"] {
-    width: 93%;
-    padding: 0.5rem;
-    margin-bottom: 0.5rem;
-    border: 2px solid var(--semi-light);
-}
-
-.dropdown-options {
-    max-height: 300px;
-    overflow-y: auto;
-    border: 1px solid var(--semi-light);
-    background: white;
-}
-
-.dropdown-options label {
-    display: block;
-    padding: 0.5rem;
-    cursor: pointer;
-    border-bottom: 1px solid #eee;
-}
-
-.dropdown-options label:hover {
-    background-color: rgba(230, 194, 41, 0.1);
-}
-
-/* Make the radio buttons more visible */
-.filter-option input[type="radio"] {
-    margin-right: 8px;
-    accent-color: var(--primary);
-}
-
-/* Active Filters */
-.active-filters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
-}
-
-.filter-chip {
-    background: var(--primary);
-    color: var(--secondary);
-    padding: 0.3rem 0.8rem;
-    border-radius: 20px;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.filter-chip a {
-    color: inherit;
-    text-decoration: none;
-    font-weight: bold;
-}
-
 /* ==================== */
 /* ENHANCED TAG CLOUD - Art Deco Style */
-/* ==================== */
-/* ==================== */
-/* ENHANCED TAG CLOUD - Refined Art Deco Style */
 /* ==================== */
 .tag-cloud {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.6rem; /* Reduced gap */
+    gap: 0.6rem;
     margin: 1rem 0;
 }
 
 .tag-cloud .tag {
     display: inline-block;
-    padding: 0.4rem 1rem; /* Smaller padding */
+    padding: 0.4rem 1rem;
     background: var(--light);
-    color: var(--secondary);
+    color: var(--secondary-dark);
     border-radius: 50px;
     text-decoration: none;
-    font-size: 0.85rem; /* Slightly smaller font */
+    font-size: 0.85rem;
     font-weight: 600;
     letter-spacing: 0.5px;
     border: 2px solid var(--semi-light);
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1); /* Smoother transition */
-    box-shadow: 2px 2px 4px rgba(0,0,0,0.1); /* Softer shadow */
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+    box-shadow: 2px 2px 4px rgba(0,0,0,0.1);
     position: relative;
     overflow: hidden;
+    cursor: pointer; /* Make it clear tags are clickable */
 }
 
 .tag-cloud .tag::before {
@@ -980,61 +950,89 @@ input[type="radio"]:checked {
     left: -2px;
     right: -2px;
     bottom: -2px;
-    border: 1px solid var(--primary); /* Thinner border */
+    border: 1px solid var(--primary);
     border-radius: 50px;
     opacity: 0;
     transition: all 0.2s ease;
 }
 
-.tag-cloud .tag:hover {
-    transform: translateY(-2px); /* Smaller lift */
-    box-shadow: 3px 3px 6px rgba(0,0,0,0.15); /* Softer shadow */
-    border-color: var(--primary);
-    background: linear-gradient(135deg, var(--light) 50%, rgba(230, 194, 41, 0.1) 50%);
+.tag-cloud .tag.part-tag {
+    background: rgba(230, 194, 41, 0.15); /* Gold tint */
+    border-color: var(--primary-light);
 }
 
+.tag-cloud .tag.available-tag {
+    background: rgba(42, 45, 52, 0.05); /* Subtle gray */
+    border-style: dashed;
+}
+
+/* Interaction states */
+.tag-cloud .tag:hover {
+    transform: translateY(-2px);
+    box-shadow: 3px 3px 6px rgba(0,0,0,0.15);
+    border-color: var(--primary);
+    background: var(--accent);
+    color: var(--secondary-dark);
+}
+
+/* Active/selected state */
 .tag-cloud .tag.active {
     background: var(--primary);
     color: var(--secondary);
     border-color: var(--primary);
-    font-weight: 600;
-    box-shadow: 3px 3px 6px rgba(0,0,0,0.15); /* Softer shadow */
-    transform: translateY(0); /* No lift when active */
+    box-shadow: 3px 3px 6px rgba(0,0,0,0.15);
 }
 
 .tag-cloud .tag.active::after {
     content: "✓";
-    margin-left: 0.4rem; /* Smaller margin */
-    font-size: 0.8rem; /* Smaller checkmark */
+    margin-left: 0.4rem;
+    font-size: 0.8rem;
+}
+
+.tag-section h4 {
+    padding-top: 20px;
+}
+
+/* Remove state */
+.tag-cloud .tag.remove-mode {
+    background: var(--error-light);
+    border-color: var(--error);
+    animation: pulseWarning 0.8s infinite alternate;
+}
+
+/* Add state */
+.tag-cloud .tag.add-mode {
+    background: var(--success-light);
+    border-color: var(--success);
+    animation: pulseSuccess 0.8s infinite alternate;
+}
+
+/* Add these to your animations if not present */
+@keyframes pulseWarning {
+    0% { background-color: var(--error-light); }
+    100% { background-color: rgba(244, 67, 54, 0.3); }
+}
+
+@keyframes pulseSuccess {
+    0% { background-color: var(--success-light); }
+    100% { background-color: rgba(76, 175, 80, 0.3); }
 }
 
 .tag-count {
     display: inline-block;
-    margin-left: 0.4rem; /* Smaller margin */
+    margin-left: 0.4rem;
     background: rgba(42, 45, 52, 0.1);
-    padding: 0.15rem 0.4rem; /* Smaller padding */
+    padding: 0.15rem 0.4rem;
     border-radius: 8px;
-    font-size: 0.75rem; /* Smaller font */
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .gallery-container {
-        grid-template-columns: 1fr;
-    }
-    
-    .filters-panel {
-        margin-right: 0;
-        border-right: none;
-        border-bottom: 3px solid var(--primary);
-    }
+    font-size: 0.75rem;
 }
 
 /* ==================== */
 /* TAG MANAGER - Art Deco Style */
 /* ==================== */
 .tag-manager {
-    background: var(--light);
+    background: var(--sorta-dark);
+    border: 2px solid var(--fa-font-brands);
     padding: 2rem;
 }
 
@@ -1063,16 +1061,16 @@ input[type="radio"]:checked {
     background: rgba(255, 255, 255, 0.95);
     padding: 1.25rem;
     border-left: 4px solid var(--primary);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); /* Softer shadow */
-    border-radius: 4px; /* Subtle rounding */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-radius: 4px;
     transition: all 0.25s ease;
     margin-bottom: 1rem;
-    overflow: hidden; /* Prevents children from overflowing */
+    overflow: hidden;
 }
 
 .tag-item:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-    transform: translateY(-1px); /* More subtle hover effect */
+    transform: translateY(-1px);
 }
 
 .tag-header {
@@ -1087,13 +1085,13 @@ input[type="radio"]:checked {
     color: var(--secondary);
     font-size: 1rem;
     margin: 0;
-    padding-right: 0.5rem; /* Prevents text from touching buttons */
+    padding-right: 0.5rem;
 }
 
 .tag-actions {
     display: flex;
     gap: 0.5rem;
-    flex-wrap: wrap; /* Allows buttons to wrap if needed */
+    flex-wrap: wrap;
     justify-content: flex-end;
 }
 
@@ -1115,7 +1113,7 @@ input[type="radio"]:checked {
 .tag-form button {
     padding: 0.5rem 1rem;
     font-size: 0.85rem;
-    white-space: nowrap; /* Prevents button text from breaking */
+    white-space: nowrap;
 }
 
 .update-btn {
@@ -1134,171 +1132,6 @@ input[type="radio"]:checked {
     border-radius: 12px;
     font-size: 0.75rem;
     color: var(--secondary);
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .tag-item {
-        padding: 1rem;
-    }
-    
-    .tag-actions {
-        flex-direction: row;
-        justify-content: flex-start;
-    }
-    
-    .tag-form button {
-        width: 100%;
-    }
-}
-
-.add-tag-form {
-    margin-bottom: 2rem;
-    background: rgba(230, 194, 41, 0.1);
-    padding: 1.5rem;
-    border: 2px dashed var(--primary);
-}
-
-.add-tag-form h3 {
-    margin-top: 0;
-    color: var(--secondary);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.add-tag-form h3 i {
-    color: var(--primary);
-}
-
-.delete-btn {
-    background: var(--error) !important;
-    color: white !important;
-}
-
-.delete-btn:hover {
-    background: #d32f2f !important;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .tag-list {
-        grid-template-columns: 1fr;
-    }
-    
-    .tag-actions {
-        flex-direction: column;
-    }
-    
-    .tag-form {
-        flex-direction: column;
-    }
-    
-    .tag-form button {
-        padding: 0.5rem;
-    }
-}
-
-/* ==================== */
-/* ENHANCED TAG SYSTEM */
-/* ==================== */
-
-/* Big clickable brand/type tags */
-/* Clickable keyword tags */
-.tag-list a.tag {
-    background: var(--primary);
-    color: var(--secondary);
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    display: inline-block;
-    margin: 0 0.5rem 0.5rem 0;
-    transition: all 0.2s;
-    border: 2px solid var(--primary);
-}
-
-.tag-list a.tag:hover {
-    background: var(--accent);
-    color: white;
-    transform: scale(1.05);
-}
-
-.tag-row {
-    display: flex;
-    gap: 15px;
-    margin: 1rem 0 2rem;
-}
-
-.tag-list a.brand-tag {
-    background: rgba(230, 195, 41, 0.25);
-    color: var(--primary);
-    border: 2px solid var(--success);
-}
-
-.type-tag {
-    background: rgba(42, 45, 52, 0.1);
-    color: var(--secondary);
-    border: 2px solid var(--secondary);
-}
-
-.big-tag:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-/* Admin-only fields */
-.admin-only {
-    position: relative;
-    background: rgba(244, 67, 54, 0.05);
-    border-left: 3px solid var(--error);
-}
-
-.admin-only::after {
-    content: "Admin Only";
-    position: absolute;
-    top: -10px;
-    right: 10px;
-    background: var(--error);
-    color: white;
-    font-size: 0.7rem;
-    padding: 2px 8px;
-    border-radius: 10px;
-}
-
-/* ==================== */
-/* PART CARD FIXES */
-/* ==================== */
-.part-card {
-    background: var(--light);
-    border-top: 6px solid var(--primary);
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    position: relative;
-}
-
-.part-card::after {
-    display: none !important;
-}
-
-.part-id {
-    font-family: monospace;
-    background: var(--dark);
-    color: var(--primary);
-    padding: 0.3rem 0.6rem;
-    display: inline-block;
-    margin-bottom: 1rem;
-}
-
-/* ==================== */
-/* ART DECO ANIMATIONS - Subtle movement 
-/* ==================== */
-@keyframes tube-glow {
-    0% { opacity: 0.8; }
-    50% { opacity: 1; }
-    100% { opacity: 0.8; }
-}
-
-.vintage-icon-large {
-    animation: tube-glow 3s infinite;
 }
 
 /* ==================== */
@@ -1353,8 +1186,23 @@ input[type="radio"]:checked {
     color: var(--light);
 }
 
-/* Responsive adjustments */
+/* ==================== */
+/* RESPONSIVE ADJUSTMENTS */
+/* ==================== */
 @media (max-width: 768px) {
+    .part-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .art-deco-card {
+        padding: 1.5rem;
+    }
+    
+    .section-header::after {
+        left: 15%;
+        width: 70%;
+    }
+
     .form-grid {
         grid-template-columns: 1fr;
     }
@@ -1363,107 +1211,41 @@ input[type="radio"]:checked {
         flex-direction: column;
         gap: 1rem;
     }
-}
 
-/* ==================== */
-/* DROPZONE             */
-/* ==================== */
-div#dropzone.dropzone {
-    border: 2px dotted var(--primary) !important;
-    border-radius: 8px !important;
-    padding: 2.5rem !important;
-    background: rgba(255, 255, 255, 0.9) !important;
-    min-height: 200px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    position: relative !important;
-    margin: 1.5rem !important;
-    box-sizing: border-box !important;
-}
+    .gallery-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .filters-panel {
+        margin-right: 0;
+        border-right: none;
+        border-bottom: 3px solid var(--primary);
+    }
 
-div#dropzone.dropzone:hover {
-    background: rgba(213, 212, 210, 0.9) !important;
-    border-color: var(--accent) !important;
-}
+    .tag-list {
+        grid-template-columns: 1fr;
+    }
+    
+    .tag-actions {
+        flex-direction: column;
+    }
+    
+    .tag-form {
+        flex-direction: column;
+    }
+    
+    .tag-form button {
+        padding: 0.5rem;
+    }
 
-div#dropzone.dropzone.dz-drag-hover {
-    background: rgba(193, 124, 116, 0.1) !important;
-    border-style: solid !important;
-}
-
-div#dropzone.dropzone .dz-message {
-    display: none !important;
-}
-
-/* Dropzone thumbnail styling */
-.dz-preview .dz-image {
-    width: 120px;
-    height: 120px;
-    overflow: hidden;
-}
-
-.dz-preview .dz-image img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover; /* Ensures images maintain aspect ratio */
-}
-
-.dropzone-content {
-    text-align: center;
-    z-index: 2;
-    pointer-events: none;
-}
-
-.dropzone-icon {
-    font-size: 3.5rem;
-    color: var(--primary);
-    margin-bottom: 1.5rem;
-}
-
-.dropzone-title {
-    font-size: 1.3rem;
-    color: var(--secondary);
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-}
-
-.dropzone-subtitle {
-    font-size: 1rem;
-    color: var(--dark);
-    opacity: 0.8;
-    margin-bottom: 1rem;
-}
-
-.dropzone-browse {
-    display: inline-block;
-    background: var(--primary);
-    color: var(--secondary);
-    padding: 0.6rem 1.2rem;
-    border-radius: 4px;
-    font-weight: 600;
-    transition: all 0.3s;
-    margin-top: 0.5rem;
-    pointer-events: auto;
-    cursor: pointer;
-}
-
-.dropzone-browse:hover {
-    background: var(--accent);
-    color: white;
-}
-
-.dropzone-file-info {
-    margin-top: 1.5rem;
-    font-size: 0.9rem;
-    color: var(--dark);
-    opacity: 0.7;
-}
-
-.progress-bar {
-    margin-bottom: 10px;
+    .existing-images-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    }
+    
+    .uppy-Dashboard-inner {
+        margin: 0 -1rem !important;
+        width: calc(100% + 2rem) !important;
+    }
 }
 
 footer {
@@ -1471,4 +1253,17 @@ footer {
     text-align: center;
     background-color: var(--dark);
     margin-top: 10px;
+}
+
+/* ==================== */
+/* ART DECO ANIMATIONS - Subtle movement */
+/* ==================== */
+@keyframes tube-glow {
+    0% { opacity: 0.8; }
+    50% { opacity: 1; }
+    100% { opacity: 0.8; }
+}
+
+.vintage-icon-large {
+    animation: tube-glow 3s infinite;
 }

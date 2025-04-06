@@ -31,7 +31,7 @@ def create_app():
         from .blueprints.errors import bp as errors_bp
 
         app.register_blueprint(main_bp)
-        app.register_blueprint(parts_bp)
+        app.register_blueprint(parts_bp, url_prefix='/parts')
         app.register_blueprint(tags_bp, url_prefix='/tags')
         app.register_blueprint(errors_bp)
         app.helpers = helpers

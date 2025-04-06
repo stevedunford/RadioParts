@@ -9,8 +9,7 @@ db = SQLAlchemy()
 # Association tables (unchanged)
 part_tags = db.Table('part_tags',
     db.Column('part_id', db.Integer, db.ForeignKey('Part.id'), primary_key=True),
-    db.Column('tag_id', db.Integer, db.ForeignKey('Tag.id'), primary_key=True),
-    db.Column('created_at', db.DateTime, default=datetime.now(timezone.utc))
+    db.Column('tag_id', db.Integer, db.ForeignKey('Tag.id'), primary_key=True)
 )
 
 
