@@ -197,9 +197,12 @@ def manage_part(part_id=None):
                     box=request.form.get('box'),
                     position=request.form.get('position')
                 )
+                print("Adding part to db")
                 db.session.add(part)
+                print("Flush changes to db")
                 db.session.flush()  # Get the ID before commit
-                
+                print(f"should have id: {part.id}")
+
                 # Handle tags for new part
                 for tag_name in request.form.getlist('tags[]'):
                     tag = Tag.query.filter(func.lower(Tag.name) == func.lower(tag_name)).first()
@@ -210,10 +213,17 @@ def manage_part(part_id=None):
 
             # Handle image associations
             image_ids = request.form.getlist('image_ids[]')
+            print("Received image IDs:", request.form.getlist('image_ids[]'))
             for image_id in image_ids:
-                image = Image.query.get(int(image_id))
-                if image and image not in part.images:
-                    part.images.append(image)
+                if image_id:  # Skip empty strings
+                    image = Image.query.get(int(image_id))
+                    if image and image not in part.images:
+                        part.images.append(image)
+                        # Ensure the image has the correct part_id
+                        image.part_id = part.id
+
+            db.session.commit()
+            print("Committed changes successfully")
 
             # New response handling logic:
             response_data = {

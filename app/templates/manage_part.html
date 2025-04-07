@@ -106,7 +106,7 @@
             <div id="selected-tags" class="tag-cloud">
                 {% if part %}
                     {% for tag in part.tags %}
-                    <span class="tag part-tag" data-tag-name="{{ tag.name }}">
+                    <span class="tag" data-tag-name="{{ tag.name }}">
                         {{ tag.name }}
                         <span class="remove-tag" aria-hidden="true">×</span>
                         <input type="hidden" name="tags[]" value="{{ tag.name }}">
@@ -183,6 +183,11 @@ const pond = FilePond.create(document.querySelector('.filepond'), {
     imageResizeMode: 'contain',
     imageResizeUpscale: false,
     stylePanelAspectRatio: 0.3,
+    stylePanelLayout: 'integrated',
+    styleLoadIndicatorPosition: 'center bottom',
+    styleProgressIndicatorPosition: 'right bottom',
+    styleButtonRemoveItemPosition: 'left bottom',
+    styleButtonProcessItemPosition: 'right bottom',
     credits: false,
     allowDrop: true,
     dropOnPage: true,
@@ -237,6 +242,36 @@ const pond = FilePond.create(document.querySelector('.filepond'), {
             .catch(err => error(err.message));
         }
     }
+});
+
+// After FilePond initialization
+pond.on('addfile', (error, file) => {
+    if (error) return;
+    
+    // Move new uploads to a separate container
+    const uploadContainer = document.createElement('div');
+    uploadContainer.className = 'new-uploads-container';
+    document.querySelector('.upload-section').appendChild(uploadContainer);
+    pond.element.parentNode.appendChild(uploadContainer);
+});
+
+// Add this to collect FilePond file IDs before form submission
+form.addEventListener('submit', function() {
+    // Get all FilePond file IDs (both existing and new)
+    const fileItems = pond.getFiles();
+    fileItems.forEach(file => {
+        if (file.serverId) {
+            const fileData = JSON.parse(file.serverId);
+            if (fileData.id) {
+                // Create hidden input for each image ID
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'image_ids[]';
+                input.value = fileData.id;
+                form.appendChild(input);
+            }
+        }
+    });
 });
 
 pond.on('addfile', (error, file) => {

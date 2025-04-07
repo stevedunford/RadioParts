@@ -78,58 +78,70 @@ document.addEventListener('DOMContentLoaded', function() {
     // ======================
     // 2. TAG MANAGEMENT
     // ======================
+    // Replace the existing tag management code with this:
+
+    // Tag handling
     const tagInput = document.getElementById('tag-input');
     const selectedTags = document.getElementById('selected-tags');
     const existingTagsContainer = document.getElementById('existing-tags');
-    let tags = [];
 
     // Initialize tags from existing inputs
-    document.querySelectorAll('#selected-tags input[name="tags[]"]').forEach(input => {
-        tags.push(input.value);
-    });
+    let tags = Array.from(document.querySelectorAll('#selected-tags input[name="tags[]"]'))
+                .map(input => input.value);
 
     function renderTags() {
         selectedTags.innerHTML = tags.map(tag => `
-            <span class="tag-pill" data-tag-name="${tag}">
+            <span class="tag-pill part-tag" data-tag-name="${tag}">
                 ${tag} <span class="remove-tag">×</span>
+                <input type="hidden" name="tags[]" value="${tag}">
             </span>
-            <input type="hidden" name="tags[]" value="${tag}">
         `).join('');
-
-        // Add event listeners to remove buttons
-        document.querySelectorAll('.remove-tag').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const tagName = this.parentElement.getAttribute('data-tag-name');
-                tags = tags.filter(t => t !== tagName);
-                renderTags();
-            });
-        });
     }
 
-    // Add tag on Enter or comma
+    // Add tag from input
     tagInput.addEventListener('keydown', function(e) {
-        if ((e.key === 'Enter' || e.key === ',') && tagInput.value.trim() && tags.length < 8) {
+        if ((e.key === 'Enter' || e.key === ',') && tagInput.value.trim()) {
             e.preventDefault();
-            tags.push(tagInput.value.trim());
-            tagInput.value = '';
-            renderTags();
+            if (!tags.includes(tagInput.value.trim())) {
+                tags.push(tagInput.value.trim());
+                renderTags();
+                tagInput.value = '';
+            }
         }
     });
 
-    // Click handler for suggested tags
-    if (existingTagsContainer) {
-        existingTagsContainer.addEventListener('click', function(e) {
-            const tagPill = e.target.closest('.suggest-tag');
-            if (tagPill && tags.length < 8) {
-                const tagName = tagPill.getAttribute('data-tag-name');
-                if (!tags.includes(tagName)) {
-                    tags.push(tagName);
-                    renderTags();
-                }
+    // Add tag from suggestions
+    existingTagsContainer?.addEventListener('click', function(e) {
+        const tagElement = e.target.closest('.available-tag');
+        if (tagElement) {
+            const tagName = tagElement.dataset.tagName;
+            if (!tags.includes(tagName)) {
+                tags.push(tagName);
+                renderTags();
+                tagElement.remove();
             }
-        });
-    }
+        }
+    });
 
+    // Remove tag
+    selectedTags.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-tag')) {
+            const tagName = e.target.parentElement.dataset.tagName;
+            tags = tags.filter(t => t !== tagName);
+            renderTags();
+            
+            // Add back to available tags if not already there
+            if (!document.querySelector(`.available-tag[data-tag-name="${tagName}"]`)) {
+                existingTagsContainer.insertAdjacentHTML('beforeend', `
+                    <span class="tag available-tag" data-tag-name="${tagName}">
+                        ${tagName} <span class="add-tag">+</span>
+                    </span>
+                `);
+            }
+        }
+    });
+
+    // Initial render
     renderTags();
 
 
@@ -142,9 +154,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add existing images in edit mode
     if (window.partEditMode && window.existingImages.length) {
         const previewContainer = document.getElementById('existing-images');
+        previewContainer.style.pointerEvents = 'none'; // Disable interaction
+
         window.existingImages.forEach(image => {
             const imgWrapper = document.createElement('div');
             imgWrapper.className = 'existing-image-wrapper';
+            imgWrapper.style.pointerEvents = 'auto'; // Re-enable for delete button
             imgWrapper.innerHTML = `
                 <img src="${image.url}" alt="${image.name}" 
                     class="existing-image" data-image-id="${image.id}">
