@@ -200,6 +200,26 @@ const pond = FilePond.create(document.querySelector('.filepond'), {
             Maximum 8 images • JPG/PNG/GIF only
         </div>
     `,
+    beforeAddFile: (file) => {
+        // Force fresh CSRF token
+        const tokenInput = document.querySelector('[name="csrf_token"]');
+        if (tokenInput) {
+            tokenInput.value = "{{ csrf_token() }}";  // Jinja2 re-render
+        }
+        return true;
+    },
+    beforeProcessFile: (file) => {
+        // Force raw token format
+        const tokenInput = document.querySelector('[name="csrf_token"]');
+        if (tokenInput) {
+            // Extract raw token if it's serialized
+            const rawToken = tokenInput.value.startsWith('Im') ? 
+                tokenInput.value.split('.')[0].slice(2) : 
+                tokenInput.value;
+            tokenInput.value = rawToken;
+        }
+        return true;
+    },
     server: {
         url: '/parts',
         process: {
@@ -246,8 +266,17 @@ const pond = FilePond.create(document.querySelector('.filepond'), {
 
 // After FilePond initialization
 pond.on('addfile', (error, file) => {
-    if (error) return;
-    
+    if (error) {   
+        showAlert(error.message, 'error');
+        return;
+    }
+
+    // Check the file limit first - only 8 per part
+    if (pond.getFiles().length > 8) {
+        showAlert('Maximum 8 images allowed per part', 'error');
+        pond.removeFile(file);
+    }
+
     // Move new uploads to a separate container
     const uploadContainer = document.createElement('div');
     uploadContainer.className = 'new-uploads-container';
@@ -255,107 +284,6 @@ pond.on('addfile', (error, file) => {
     pond.element.parentNode.appendChild(uploadContainer);
 });
 
-// Add this to collect FilePond file IDs before form submission
-form.addEventListener('submit', function() {
-    // Get all FilePond file IDs (both existing and new)
-    const fileItems = pond.getFiles();
-    fileItems.forEach(file => {
-        if (file.serverId) {
-            const fileData = JSON.parse(file.serverId);
-            if (fileData.id) {
-                // Create hidden input for each image ID
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'image_ids[]';
-                input.value = fileData.id;
-                form.appendChild(input);
-            }
-        }
-    });
-});
-
-pond.on('addfile', (error, file) => {
-    if (error) {
-        showAlert(error.message, 'error');
-        return;
-    }
-    
-    if (pond.getFiles().length > 8) {
-        showAlert('Maximum 8 images allowed per part', 'error');
-        pond.removeFile(file);
-    }
-});
-
-// Enhanced Tag Management
-document.addEventListener('DOMContentLoaded', function() {
-    const tagInput = document.getElementById('tag-input');
-    const addTagBtn = document.getElementById('add-tag-btn');
-    const selectedTags = document.getElementById('selected-tags');
-    const existingTags = document.getElementById('existing-tags');
-    
-    // Add new tag from input
-    addTagBtn.addEventListener('click', addNewTag);
-    tagInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') addNewTag();
-    });
-    
-    // Add tag from suggestions
-    existingTags.addEventListener('click', function(e) {
-        const tagElement = e.target.closest('.available-tag');
-        if (tagElement) {
-            const tagName = tagElement.dataset.tagName;
-            addTagToSelected(tagName);
-            tagElement.remove();
-        }
-    });
-    
-    // Remove tag
-    selectedTags.addEventListener('click', function(e) {
-        if (e.target.classList.contains('remove-tag')) {
-            const tagElement = e.target.closest('.part-tag');
-            const tagName = tagElement.dataset.tagName;
-            tagElement.remove();
-            addTagToAvailable(tagName);
-        }
-    });
-    
-    function addNewTag() {
-        const tagName = tagInput.value.trim();
-        if (tagName && !tagExists(tagName)) {
-            addTagToSelected(tagName);
-            tagInput.value = '';
-        }
-    }
-    
-    function tagExists(tagName) {
-        return document.querySelector(`.part-tag[data-tag-name="${tagName}"]`) !== null;
-    }
-    
-    function addTagToSelected(tagName) {
-        const tagHtml = `
-            <span class="tag part-tag" data-tag-name="${tagName}">
-                ${tagName}
-                <span class="remove-tag" aria-hidden="true">×</span>
-                <input type="hidden" name="tags[]" value="${tagName}">
-            </span>
-        `;
-        selectedTags.insertAdjacentHTML('beforeend', tagHtml);
-        
-        // Remove the "no tags" message if present
-        const noTagsMsg = selectedTags.querySelector('.no-tags-message');
-        if (noTagsMsg) noTagsMsg.remove();
-    }
-    
-    function addTagToAvailable(tagName) {
-        const tagHtml = `
-            <span class="tag available-tag" data-tag-name="${tagName}">
-                ${tagName}
-                <span class="add-tag" aria-hidden="true">+</span>
-            </span>
-        `;
-        existingTags.insertAdjacentHTML('beforeend', tagHtml);
-    }
-});
 </script>
 
 <!-- Main form handler -->

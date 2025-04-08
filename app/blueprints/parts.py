@@ -141,7 +141,7 @@ def debug_form():
 @bp.route('/<int:part_id>/edit', methods=['GET', 'POST'])
 def manage_part(part_id=None):
     part = Part.query.get(part_id) if part_id else None
-    
+
     brands = Brand.query.order_by(Brand.name).all()
     part_types = PartType.query.order_by(PartType.name).all()
     locations = Location.query.order_by(Location.name).all()
@@ -163,7 +163,7 @@ def manage_part(part_id=None):
                 part.location_id = request.form.get('location_id')
                 part.box = request.form.get('box')
                 part.position = request.form.get('position')
-                
+
                 # Handle deleted images
                 deleted_images = request.form.get('deleted_images', '').split(',')
                 for image_id in deleted_images:
@@ -171,7 +171,7 @@ def manage_part(part_id=None):
                         image = Image.query.get(int(image_id))
                         if image:
                             db.session.delete(image)
-                
+
                 # Handle tags - clear existing first
                 part.tags.clear()
                 for tag_name in request.form.getlist('tags[]'):
@@ -235,14 +235,14 @@ def manage_part(part_id=None):
 
             if request.accept_mimetypes.accept_json or 'application/json' in request.headers.get('Accept', ''):
                 return jsonify(response_data), 200, {'Content-Type': 'application/json'}
-            
+
             flash(response_data['message'], 'success')
             return redirect(response_data['redirect'])
-            
+
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Error saving part: {str(e)}")
-            
+
             error_response = {
                 'success': False,
                 'message': f'Error saving part: {str(e)}'
@@ -250,16 +250,42 @@ def manage_part(part_id=None):
 
             if request.accept_mimetypes.accept_json or 'application/json' in request.headers.get('Accept', ''):
                 return jsonify(error_response), 400, {'Content-Type': 'application/json'}
-            
+
             flash(error_response['message'], 'error')
             return redirect(request.url)
-    
+
     return render_template('manage_part.html',
-                         part=part,
-                         brands=brands,
-                         part_types=part_types,
-                         locations=locations,
-                         all_tags=all_tags)
+                           part=part,
+                           brands=brands,
+                           part_types=part_types,
+                           locations=locations,
+                           all_tags=all_tags)
+
+
+@bp.route('/<int:part_id>/delete', methods=['POST'])
+def delete_part(part_id):
+    part = Part.query.get_or_404(part_id)
+    try:
+        # Delete associated images from filesystem
+        for image in part.images:
+            image_path = Path(current_app.config['UPLOAD_FOLDER']) / image.filename
+            if image_path.exists():
+                image_path.unlink()
+
+        # Delete from database (tags are handled via cascade)
+        db.session.delete(part)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'redirect': url_for('parts.gallery')
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
 
 
 @bp.route('/<int:part_id>')
@@ -288,6 +314,9 @@ def parts_by_tag(tag_name):
 
 @bp.route('/upload_images', methods=['POST'])
 def upload_images():
+    print("-- Uploading images --")
+    print("Received CSRF Token:", request.headers.get('X-CSRF-Token'))
+    print("Form CSRF Token:", request.form.get('csrf_token'))
     print(request.files)  # Debug what's actually received
     """Handle file uploads with image processing"""
     if 'file' not in request.files:  # Changed from 'files' to 'file'

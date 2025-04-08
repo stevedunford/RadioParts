@@ -64,7 +64,7 @@ class Part(db.Model):
     # Relationships
     brand = db.relationship('Brand', back_populates='parts')
     location = db.relationship('Location', back_populates='parts')
-    images = db.relationship('Image', back_populates='part')
+    images = db.relationship('Image', back_populates='part', cascade='all, delete-orphan')
     tags = db.relationship('Tag', secondary=part_tags, back_populates='parts')
     part_type = db.relationship('PartType')
 

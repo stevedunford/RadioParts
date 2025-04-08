@@ -42,7 +42,7 @@ function showAlert(message, type = "error") {
         alert.style.opacity = '0';
         alert.style.transition = 'opacity 0.5s';
         setTimeout(() => alert.remove(), 500);
-    }, 5000);
+    }, 8000);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -75,45 +75,51 @@ document.addEventListener('DOMContentLoaded', function() {
     window.partId = window.partId || null;
     window.existingImages = window.existingImages || [];
 
+
     // ======================
     // 2. TAG MANAGEMENT
     // ======================
-    // Replace the existing tag management code with this:
-
-    // Tag handling
     const tagInput = document.getElementById('tag-input');
+    const addTagBtn = document.getElementById('add-tag-btn');
     const selectedTags = document.getElementById('selected-tags');
-    const existingTagsContainer = document.getElementById('existing-tags');
+    const existingTags = document.getElementById('existing-tags');
 
-    // Initialize tags from existing inputs
+    // Initialize from existing tags in form
     let tags = Array.from(document.querySelectorAll('#selected-tags input[name="tags[]"]'))
                 .map(input => input.value);
 
     function renderTags() {
+        // Clear and rebuild selected tags display
         selectedTags.innerHTML = tags.map(tag => `
-            <span class="tag-pill part-tag" data-tag-name="${tag}">
+            <span class="tag part-tag" data-tag-name="${tag}">
                 ${tag} <span class="remove-tag">×</span>
                 <input type="hidden" name="tags[]" value="${tag}">
             </span>
         `).join('');
+
+        // Remove "no tags" message if present
+        const noTagsMsg = selectedTags.querySelector('.no-tags-message');
+        if (noTagsMsg) noTagsMsg.remove();
     }
 
-    // Add tag from input
-    tagInput.addEventListener('keydown', function(e) {
-        if ((e.key === 'Enter' || e.key === ',') && tagInput.value.trim()) {
-            e.preventDefault();
-            if (!tags.includes(tagInput.value.trim())) {
-                tags.push(tagInput.value.trim());
-                renderTags();
-                tagInput.value = '';
-            }
+    // Add tag from input field
+    function addTagFromInput() {
+        const tagName = tagInput.value.trim();
+        if (tagName && tags.length < 8 && !tags.includes(tagName)) {
+            tags.push(tagName);
+            renderTags();
+            tagInput.value = '';
+            
+            // Remove from available tags if present
+            const availableTag = existingTags.querySelector(`[data-tag-name="${tagName}"]`);
+            if (availableTag) availableTag.remove();
         }
-    });
+    }
 
-    // Add tag from suggestions
-    existingTagsContainer?.addEventListener('click', function(e) {
+    // Add tag from available pool
+    existingTags.addEventListener('click', (e) => {
         const tagElement = e.target.closest('.available-tag');
-        if (tagElement) {
+        if (tagElement && tags.length < 8) {
             const tagName = tagElement.dataset.tagName;
             if (!tags.includes(tagName)) {
                 tags.push(tagName);
@@ -124,15 +130,17 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Remove tag
-    selectedTags.addEventListener('click', function(e) {
+    selectedTags.addEventListener('click', (e) => {
         if (e.target.classList.contains('remove-tag')) {
-            const tagName = e.target.parentElement.dataset.tagName;
+            const tagElement = e.target.closest('.part-tag');
+            const tagName = tagElement.dataset.tagName;
+            
             tags = tags.filter(t => t !== tagName);
             renderTags();
             
-            // Add back to available tags if not already there
-            if (!document.querySelector(`.available-tag[data-tag-name="${tagName}"]`)) {
-                existingTagsContainer.insertAdjacentHTML('beforeend', `
+            // Add back to available tags if not present
+            if (!existingTags.querySelector(`[data-tag-name="${tagName}"]`)) {
+                existingTags.insertAdjacentHTML('beforeend', `
                     <span class="tag available-tag" data-tag-name="${tagName}">
                         ${tagName} <span class="add-tag">+</span>
                     </span>
@@ -140,6 +148,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+
+    // Event listeners
+    tagInput.addEventListener('keydown', (e) => {
+        if ((e.key === 'Enter' || e.key === ',') && tagInput.value.trim()) {
+            e.preventDefault();
+            addTagFromInput();
+        }
+    });
+
+    addTagBtn.addEventListener('click', addTagFromInput);
 
     // Initial render
     renderTags();
@@ -150,6 +168,31 @@ document.addEventListener('DOMContentLoaded', function() {
     // ======================
 
     // removed Filepond setup - which is now in manage_part.html
+
+    // Add this to collect FilePond file IDs before form submission
+    form.addEventListener('submit', function() {
+        if (typeof pond !== 'undefined') {
+            // Get all FilePond file IDs (both existing and new)
+            const fileItems = pond.getFiles();
+            fileItems.forEach(file => {
+                if (file.serverId) {
+                    const fileData = JSON.parse(file.serverId);
+                    if (fileData.id) {
+                        // Create hidden input for each image ID
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'image_ids[]';
+                        input.value = fileData.id;
+                        form.appendChild(input);
+                    }
+                }
+            });
+        } else {  // Filepond did not initialise correctly
+            console.error('FilePond not initialized - proceeding without image processing');
+            showAlert('Warning: Image upload system not fully loaded', 'warning');
+            return; // Let form submit normally
+        }
+    });
 
     // Add existing images in edit mode
     if (window.partEditMode && window.existingImages.length) {
@@ -307,20 +350,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Delete button handler
     if (window.partEditMode) {
-        document.getElementById('delete-part')?.addEventListener('click', function() {
-            if (confirm('Are you sure you want to delete this part?')) {
-                fetch(`/parts/${window.partId}/delete`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value,
-                        'Content-Type': 'application/json'
+        document.getElementById('delete-part')?.addEventListener('click', async function() {
+            if (confirm('Permanently delete this part and all its images?')) {
+                try {
+                    const response = await fetch(`/parts/${window.partId}/delete`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': document.querySelector('[name="csrf_token"]').value,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showAlert('Part deleted', 'success');
+                        setTimeout(() => {
+                            window.location.href = result.redirect || '/parts';
+                        }, 1500);
+                    } else {
+                        throw new Error(result.message || 'Delete failed');
                     }
-                }).then(response => {
-                    if (response.ok) window.location.href = '/parts';
-                    else throw new Error('Delete failed');
-                }).catch(err => {
-                    showAlert("Failed to delete part", "error");
-                });
+                } catch (error) {
+                    showAlert(`Delete failed: ${error.message}`, 'error');
+                }
             }
         });
     }

@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, session, request
 from flask_wtf.csrf import CSRFProtect
 from .utils import helpers
 from .models import db
@@ -35,6 +35,14 @@ def create_app():
         app.register_blueprint(tags_bp, url_prefix='/tags')
         app.register_blueprint(errors_bp)
         app.helpers = helpers
+
+    @app.before_request
+    def enforce_single_session():
+        if 'session' in request.cookies and len(request.cookies.getlist('session')) > 1:
+            # Clear all session cookies
+            session.clear()
+            # Force new session
+            session['_fresh'] = True
 
     # filters for gallery
     @app.template_filter('remove_key')
