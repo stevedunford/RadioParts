@@ -5,6 +5,8 @@
  * - No missing code
  */
 
+console.log(window.partEditMode);
+
 // Helper function to show alerts
 function showAlert(message, type = "error") {
     // Remove existing alerts first
@@ -349,8 +351,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Delete button handler
+    deleteButton = document.getElementById('delete-part');
+    console.log(deleteButton);
     if (window.partEditMode) {
-        document.getElementById('delete-part')?.addEventListener('click', async function() {
+        deleteButton?.addEventListener('click', async function() {
             if (confirm('Permanently delete this part and all its images?')) {
                 try {
                     const response = await fetch(`/parts/${window.partId}/delete`, {
@@ -376,5 +380,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
+    } else {
+        deleteButton.textContent = 'Cancel';
+        deleteButton.onclick = () => { window.location.href = '/parts'; };
     }
 });
