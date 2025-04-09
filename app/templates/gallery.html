@@ -97,14 +97,63 @@
 
         <!-- Main Results -->
         <main class="results-area">
-            <!-- Search Box -->
-            <form class="search-box" action="{{ url_for('parts.gallery') }}">
+        <div class="search-controls">
+            <form class="search-box" action="{{ url_for('parts.gallery') }}" method="GET">
+                <!-- Hidden fields to preserve other filters -->
+                {% if request.args.get('brand') %}
+                <input type="hidden" name="brand" value="{{ request.args.get('brand') }}">
+                {% endif %}
+                {% if request.args.get('type') %}
+                <input type="hidden" name="type" value="{{ request.args.get('type') }}">
+                {% endif %}
+                {% for tag in request.args.getlist('tag') %}
+                <input type="hidden" name="tag" value="{{ tag }}">
+                {% endfor %}
+                
                 <input type="text" name="q" placeholder="Search parts..." 
-                       value="{{ request.args.get('q', '') }}">
-                <button type="submit">
+                    value="{{ request.args.get('q', '') }}"
+                    aria-label="Search parts">
+                <button type="submit" class="search-button">
                     <i class="fas fa-search"></i>
                 </button>
+                {% if request.args.get('q') %}
+                <a href="{{ url_for('parts.gallery', **request.args.to_dict()|remove_key('q')) }}" 
+                class="clear-button" title="Clear search">
+                    <i class="fas fa-times"></i>
+                </a>
+                {% endif %}
             </form>
+
+            <div class="sort-control">
+                <form id="sortForm" method="GET" action="{{ url_for('parts.gallery') }}">
+                    <!-- Preserve all current filters -->
+                    {% for key, value in request.args.items() %}
+                        {% if key not in ['sort', 'page'] %}
+                            {% if key == 'tag' %}
+                                {% for tag in request.args.getlist('tag') %}
+                                <input type="hidden" name="tag" value="{{ tag }}">
+                                {% endfor %}
+                            {% else %}
+                                <input type="hidden" name="{{ key }}" value="{{ value }}">
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                    
+                    <label for="sortSelect">Sort by:</label>
+                    <select id="sortSelect" name="sort" onchange="this.form.submit()">
+                        <option value="brand_asc" {% if sort == 'brand_asc' %}selected{% endif %}>Brand (A-Z)</option>
+                        <option value="name_asc" {% if sort == 'name_asc' %}selected{% endif %}>Part Name (A-Z)</option>
+                        <option value="name_desc" {% if sort == 'name_desc' %}selected{% endif %}>Part Name (Z-A)</option>
+                        <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest First</option>
+                        <option value="oldest" {% if sort == 'oldest' %}selected{% endif %}>Oldest First</option>
+                    </select>
+                </form>
+            </div>
+
+            <a href="{{ url_for('parts.gallery') }}" class="reset-button vintage-button">
+                <i class="fas fa-sync-alt"></i> Reset All
+            </a>
+        </div>
             
             <!-- Active Filters -->
             <div class="active-filters">
@@ -141,61 +190,78 @@
             <!-- Results Grid -->
             <div class="parts-grid">
                 {% for part in parts.items %}
-                <article class="part-card">
-                    <a href="{{ url_for('parts.view_part', part_id=part.id) }}">
+                <a href="{{ url_for('parts.view_part', part_id=part.id) }}" class="card-link">
+                    <article class="part-card">
                         <div class="part-thumbnail">
                             {% if part.images %}
-                            <!-- Add loading="lazy" and size constraints -->
                             <img src="{{ url_for('static', filename='images/' + part.images[0].filename) }}"
                                 alt="{{ part.name }}"
-                                loading="lazy"
-                                width="280"
-                                height="200">
+                                loading="lazy">
                             {% else %}
-                            <div class="no-image"></div>
+                            <div class="no-image">
+                                <i class="fas fa-image vintage-icon-large"></i>
+                            </div>
                             {% endif %}
                         </div>
                         <div class="part-info">
-                            <h3>{{ part.name }}{% if part.part_number %} <i>({{ part.part_number }})</i>{% endif %}</h3>
+                            <h3>{{ part.name }}</h3>
+                            {% if part.part_number %}
+                            <div class="part-number">{{ part.part_number }}</div>
+                            {% endif %}
                             <div class="part-meta">
                                 {% if part.brand %}
-                                <span class="brand">{{ part.brand.name }}</span>
-                                {% endif %}
-                                {% if part.part_type %}
-                                <span class="type">{{ part.part_type.name }}</span>
+                                <span class="brand">{{ part.brand.name }} {% if part.part_type %}{{ part.part_type.name }}{% endif %}
                                 {% endif %}
                             </div>
                         </div>
-                    </a>
-                </article>
+                    </article>
+                </a>
                 {% endfor %}
             </div>
             
             <!-- Pagination -->
             {% if parts.pages > 1 %}
-            <div class="pagination">
-                {% if parts.has_prev %}
-                <a href="{{ url_for('parts.gallery', page=parts.prev_num, **request.args) }}">
-                    &laquo; Previous
-                </a>
-                {% endif %}
+            <div class="pagination-controls">
+                <div class="items-per-page">
+                    <label for="perPageSelect">Show:</label>
+                    <select id="perPageSelect" onchange="updateItemsPerPage(this.value)">
+                        <option value="12" {% if per_page == 12 %}selected{% endif %}>12</option>
+                        <option value="24" {% if per_page == 24 %}selected{% endif %}>24</option>
+                        <option value="48" {% if per_page == 48 %}selected{% endif %}>48</option>
+                        <option value="96" {% if per_page == 96 %}selected{% endif %}>96</option>
+                    </select>
+                    <span class="custom-arrow">▼</span>
+                </div>
                 
-                {% for page_num in parts.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-                    {% if page_num %}
-                        <a href="{{ url_for('parts.gallery', page=page_num, **request.args) }}"
-                           {% if page_num == parts.page %}class="active"{% endif %}>
-                            {{ page_num }}
-                        </a>
-                    {% else %}
-                        <span class="ellipsis">...</span>
+                <div class="pagination">
+                    {% if parts.has_prev %}
+                    <a href="{{ url_for('parts.gallery', **dict(request.args, page=parts.prev_num)) }}"
+                    class="pagination-arrow">
+                        &laquo;
+                    </a>
                     {% endif %}
-                {% endfor %}
-                
-                {% if parts.has_next %}
-                <a href="{{ url_for('parts.gallery', page=parts.next_num, **request.args) }}">
-                    Next &raquo;
-                </a>
-                {% endif %}
+                    
+                    {% for page_num in parts.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                            {% if page_num == parts.page %}
+                            <span class="current-page">{{ page_num }}</span>
+                            {% else %}
+                            <a href="{{ url_for('parts.gallery', **dict(request.args, page=page_num)) }}">
+                                {{ page_num }}
+                            </a>
+                            {% endif %}
+                        {% else %}
+                            <span class="ellipsis">...</span>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if parts.has_next %}
+                    <a href="{{ url_for('parts.gallery', **dict(request.args, page=parts.next_num)) }}"
+                    class="pagination-arrow">
+                        &raquo;
+                    </a>
+                    {% endif %}
+                </div>
             </div>
             {% endif %}
         </main>
@@ -215,7 +281,46 @@ function filterBrands() {
     }
 }
 
-// Add this to handle form submission
+// Preserve filters when changing pages
+document.addEventListener('DOMContentLoaded', function() {
+    const paginationLinks = document.querySelectorAll('.pagination a');
+    paginationLinks.forEach(link => {
+        const href = new URL(link.href);
+        if (!href.searchParams.has('per_page')) {  // Fixed missing parenthesis here
+            href.searchParams.set('per_page', {{ per_page }});
+            link.href = href.toString();
+        }
+    });
+});
+
+// Items-per-page handler (fully compatible with above)
+function updateItemsPerPage(value) {
+    const url = new URL(window.location.href);
+    
+    // Set new items per page and reset to page 1
+    url.searchParams.set('per_page', value);
+    url.searchParams.set('page', 1);
+    
+    // Preserve all other parameters
+    const params = new URLSearchParams(window.location.search);
+    params.forEach((val, key) => {
+        if (key !== 'per_page' && key !== 'page') {
+            // Handle multiple values for same key (like tags)
+            if (key === 'tag') {
+                url.searchParams.delete('tag'); // Clear existing tags
+                params.getAll('tag').forEach(tag => {
+                    url.searchParams.append('tag', tag);
+                });
+            } else {
+                url.searchParams.set(key, val);
+            }
+        }
+    });
+    
+    window.location.href = url.toString();
+}
+
+// form submission
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('brandFilterForm');
     const radios = form.querySelectorAll('input[type="radio"]');
@@ -226,6 +331,23 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Sort
+function updateSort(value) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('sort', value);
+    // Reset to first page when changing sort
+    url.searchParams.set('page', 1);
+    window.location.href = url.toString();
+}
+
+// Pagination
+function updateItemsPerPage(value) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('per_page', value);
+    url.searchParams.set('page', 1); // Reset to first page
+    window.location.href = url.toString();
+}
 </script>
 
 {% endblock %}

@@ -46,87 +46,86 @@ def allowed_file(filename):
 
 
 @bp.route('/')
+@bp.route('/gallery')
 def gallery():
-    # Initialize query with eager loading
-    query = Part.query.options(
-        db.joinedload(Part.images),
-        db.joinedload(Part.brand),
-        db.joinedload(Part.part_type),
-        db.joinedload(Part.tags)
-    )
-
-    # Filter parameters
+    # Pagination parameters
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 12, type=int)
+    
+    # Initialize query with joins for efficient sorting/filtering
+    query = Part.query.join(Brand, Part.brand).options(db.joinedload(Part.brand))
+    
+    # Get all filter parameters
     brand_id = request.args.get('brand', type=int)
-    type_id = request.args.get('type', type=int)
-    tag_names = request.args.getlist('tag')
+    part_type_id = request.args.get('type', type=int)
     search_query = request.args.get('q', '').strip()
-
+    tags = request.args.getlist('tag')
+    
+    # Initialize filters
+    filters = []
+    current_filters = {
+        'brand': brand_id,
+        'type': part_type_id,
+        'q': search_query if search_query else None
+    }
+    
     # Apply filters
     if brand_id:
-        query = query.filter_by(brand_id=brand_id)
-
-    if type_id:
-        query = query.filter_by(part_type_id=type_id)
-
-    if tag_names:
-        query = query.join(part_tags).join(Tag).filter(Tag.name.in_(tag_names))
-
+        filters.append(Part.brand_id == brand_id)
+    if part_type_id:
+        filters.append(Part.part_type_id == part_type_id)
     if search_query:
-        search = f"%{search_query}%"
-        query = query.filter(or_(
-            Part.name.ilike(search),
-            Part.description.ilike(search),
-            Part.part_number.ilike(search),
-            Brand.name.ilike(search),
-            PartType.name.ilike(search)
+        filters.append(or_(
+            Part.name.ilike(f'%{search_query}%'),
+            Part.description.ilike(f'%{search_query}%'),
+            Part.part_number.ilike(f'%{search_query}%'),
+            Brand.name.ilike(f'%{search_query}%')  # Include brand name in search
         ))
-
-    # Pagination
-    page = request.args.get('page', 1, type=int)
-    per_page = 12  # Items per page
+    if tags:
+        for tag_name in tags:
+            tag = Tag.query.filter_by(name=tag_name).first()
+            if tag:
+                filters.append(Part.tags.contains(tag))
+    
+    # Default sorting: brand name (asc) then part number (asc)
+    sort = request.args.get('sort', 'brand_asc')
+    if sort == 'name_asc':
+        query = query.order_by(Part.name.asc())
+    elif sort == 'name_desc':
+        query = query.order_by(Part.name.desc())
+    elif sort == 'newest':
+        query = query.order_by(Part.created_at.desc())
+    elif sort == 'oldest':
+        query = query.order_by(Part.created_at.asc())
+    else:  # Default: brand_asc
+        query = query.order_by(Brand.name.asc(), Part.part_number.asc())
+    
+    # Apply filters to query
+    if filters:
+        query = query.filter(*filters)
+    
+    # Get paginated results
     parts = query.paginate(page=page, per_page=per_page, error_out=False)
-
-    # Get filter options
-    brands = Brand.query.order_by(Brand.name).all()
-    part_types = PartType.query.order_by(PartType.name).all()
-
-      # Get all distinct tag names with their counts
-    tag_counts = db.session.query(
+    
+    # Get all brands and part types for filters
+    brands = Brand.query.order_by(Brand.name.asc()).all()
+    part_types = PartType.query.order_by(PartType.name.asc()).all()
+    
+    # Get tags with counts
+    all_tags = db.session.query(
         Tag.name,
         func.count(part_tags.c.part_id).label('count')
-    ).join(
-        part_tags
-    ).group_by(
-        Tag.name
-    ).order_by(
-        Tag.name
-    ).all()
-
-    # Get all tags that exist (even if unused)
-    all_tags = Tag.query.order_by(Tag.name).all()
-
-    # Combine the data
-    tags_data = []
-    for tag in all_tags:
-        count = next((tc[1] for tc in tag_counts if tc[0] == tag.name), 0)
-        tags_data.append({
-            'name': tag.name,
-            'count': count,
-            'slug': slugify(tag.name)
-        })
-
+    ).join(part_tags).group_by(Tag.name).order_by(Tag.name.asc()).all()
+    
     return render_template(
         'gallery.html',
         parts=parts,
         brands=brands,
         part_types=part_types,
-        all_tags=tags_data,  # Now passing properly structured data
-        current_filters={
-            'brand': brand_id,
-            'type': type_id,
-            'tags': tag_names,
-            'q': search_query
-        }
+        all_tags=all_tags,
+        current_filters=current_filters,
+        per_page=per_page,
+        sort=sort
     )
 
 

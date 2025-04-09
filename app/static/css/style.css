@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poiret+One&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poiret+One&family=Federo&display=swap');
 
 /* ============================================ */
 /* CSS Variables & Base Styles - Art Deco Radio */
@@ -24,7 +24,7 @@
     --shadow-primary: 0 4px 12px rgba(230, 194, 41, 0.2);
     
     /* Art Deco Typography */
-    --font-main: 'Montserrat', sans-serif;
+    --font-main: 'Federo', sans-serif;
     --font-display: 'Playfair Display', serif;
     
     /* Radio-inspired decorative elements */
@@ -314,6 +314,31 @@ h1, h2, h3, h4 {
     box-shadow: 0 0 0 3px var(--secondary),
                 0 0 0 6px var(--primary);
 }
+
+/* Card link styling */
+.card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    height: 100%;
+    transition: transform 0.3s;
+}
+
+.card-link:hover {
+    transform: scale(1.02);
+}
+
+/* Remove any conflicting hover effects from part-card */
+.part-card:hover {
+    transform: none; /* Now handled by card-link */
+}
+
+/* Ensure pointer cursor on hover */
+.card-link:hover .part-card {
+    cursor: pointer;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
 
 /* ==================== */
 /* PART VIEW - Radio Faceplate Style */
@@ -784,6 +809,7 @@ p.part-details-top {
 .part-info h3, 
 .part-meta .brand, 
 .part-meta .type {
+    font-family: var(--font-main);
     color: var(--secondary) !important; /* Force dark text */
 }
 
@@ -860,20 +886,28 @@ input[type="radio"]:checked {
 /* Search Box */
 .search-box {
     display: flex;
-    margin-bottom: 1.5rem;
+    flex-grow: 1;
+    min-width: 250px;
+    position: relative;
 }
 
 .search-box input {
     flex-grow: 1;
     padding: 0.8rem;
+    padding-right: 2.5rem;
     border: 2px solid var(--primary);
+    font-family: var(--font-main);
 }
 
-.search-box button {
+.search-button {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
     background: var(--primary);
     color: var(--secondary);
     border: none;
-    padding: 0 1.5rem;
+    padding: 0 1rem;
     cursor: pointer;
 }
 
@@ -887,6 +921,43 @@ input[type="radio"]:checked {
     padding: 0.5rem;
     margin-bottom: 0.5rem;
     border: 2px solid var(--semi-light);
+}
+
+.search-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center; /* This ensures all children are vertically centered */
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.clear-button {
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--semi-light);
+    cursor: pointer;
+    padding: 0.5rem;
+}
+
+.clear-button:hover {
+    color: var(--error);
+}
+
+.sort-control {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 200px;
+}
+
+.sort-control select {
+    padding: 0.5rem;
+    border: 2px solid var(--primary);
+    background: var(--light);
+    color: var(--secondary);
+    font-family: var(--font-main);
 }
 
 .dropdown-options {
@@ -908,6 +979,53 @@ input[type="radio"]:checked {
     background-color: rgba(230, 194, 41, 0.1);
 }
 
+.reset-button {
+    text-decoration: none;
+    top: -6px;
+    padding: 0.6rem 1rem; /* Slightly adjusted padding */
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 42px; /* Match the height of other controls */
+    box-sizing: border-box; /* Include padding in height calculation */
+}
+
+.search-box input,
+.sort-control select {
+    height: 42px;
+    box-sizing: border-box;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .reset-button,
+    .search-box input,
+    .sort-control select {
+        height: 38px; /* Slightly smaller on mobile */
+    }
+    
+    .search-button {
+        height: 38px;
+        width: 38px;
+    }
+    .search-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .sort-control {
+        width: 100%;
+    }
+    
+    .sort-control select {
+        width: 100%;
+    }
+    
+    .reset-button {
+        justify-content: center;
+    }
+}
 
 /* Active Filters */
 .active-filters {
@@ -949,6 +1067,259 @@ input[type="radio"]:checked {
     background: var(--secondary);
     color: var(--primary);
 }
+
+/* Items per page dropdown styling */
+.items-per-page {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--semi-light);
+}
+
+.items-per-page select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding: 0.5rem 1.5rem 0.5rem 0.75rem;
+    border: 2px solid var(--primary);
+    background: var(--light);
+    color: var(--secondary);
+    font-family: var(--font-main);
+    border-radius: 3px;
+    cursor: pointer;
+    min-width: 60px;
+}
+
+.custom-arrow {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--accent);
+    font-size: 0.7rem;
+}
+
+.items-per-page select:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(230, 194, 41, 0.3);
+    border-color: var(--accent);
+}
+
+/* Hover state */
+.items-per-page:hover select {
+    border-color: var(--accent);
+}
+
+/* Active state */
+.items-per-page select:active {
+    background-color: rgba(230, 194, 41, 0.1);
+}
+
+
+/* ==================== */
+/*    Parts Page CSS    */
+/* ==================== */
+.parts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2rem;
+    margin: 2rem 0;
+    padding: 2px;
+}
+
+.part-card {
+    background: var(--light);
+    border-top: 4px solid var(--primary);
+    transition: transform 0.3s ease;
+    color: var(--dark);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    /* Permanent shadow */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    /* Optional: Add a subtle border for more definition */
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.part-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 5px,
+        var(--primary) 5px,
+        var(--primary) 10px
+    );
+    opacity: 0.7;
+}
+
+.part-card:hover {
+    transform: translateY(-3px); /* More subtle lift */
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15); /* Slightly stronger shadow on hover */
+    z-index: 1; /* Bring card forward over neighbors */
+}
+
+.part-card:hover::before {
+    animation: slide 2s linear infinite;
+}
+
+@keyframes slide {
+    from { background-position-x: 0; }
+    to { background-position-x: 10px; }
+}
+
+
+.part-thumbnail {
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--secondary);
+    position: relative;
+    overflow: hidden;
+    padding: 2px 0;
+    border: 1px solid rgba(228, 220, 189, 0.9);
+}
+
+.part-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 15px;
+    transition: transform 0.3s;
+}
+
+.part-card:hover .part-thumbnail img {
+    transform: scale(1.05);
+}
+
+.no-image {
+    color: var(--semi-light);
+    text-align: center;
+    padding: 2rem;
+    font-size: 3rem;
+}
+
+.part-info {
+    padding: 1.25rem;
+    flex-grow: 1;
+}
+
+.part-info h3 {
+    margin: 0 0 0.25rem;
+    color: var(--secondary);
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.1rem;
+    line-height: 1.3;
+}
+
+.part-number {
+    color: var(--accent);
+    font-size: 0.85rem;
+    margin: 0 0 0.5rem;
+    font-style: italic;
+}
+
+.part-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.85rem;
+    color: var(--sorta-dark);
+}
+
+.part-meta .brand {
+    font-weight: 600;
+    color: var(--secondary);
+}
+
+.part-meta .type {
+    font-style: italic;
+    color: var(--accent);
+}
+
+.part-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.part-tags .tag {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    background: rgba(230, 194, 41, 0.1);
+    color: var(--accent);
+}
+
+/* Enhanced Pagination */
+.pagination-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--semi-light);
+}
+
+.items-per-page {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.items-per-page select {
+    padding: 0.5rem;
+    border: 2px solid var(--primary);
+    background: var(--light);
+    color: var(--secondary);
+}
+
+.pagination {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.pagination a, 
+.pagination span {
+    padding: 0.5rem 1rem;
+    min-width: 40px;
+    text-align: center;
+}
+
+.pagination a {
+    background: var(--primary);
+    color: var(--secondary);
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.pagination a:hover {
+    background: var(--accent);
+    color: white;
+}
+
+.pagination .current-page {
+    background: var(--secondary);
+    color: var(--primary);
+    font-weight: bold;
+}
+
+.pagination-arrow {
+    font-weight: bold;
+}
+
 
 /* ==================== */
 /* Brand Parts Page CSS */
