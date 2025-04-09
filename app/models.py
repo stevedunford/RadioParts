@@ -99,6 +99,8 @@ class Image(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     filename = db.Column(db.String(100), nullable=False)
     description = db.Column(db.String(500))
+    is_primary = db.Column(db.Boolean, default=False)
+    sort_order = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime,
                            default=lambda: datetime.now(timezone.utc))
     location_id = db.Column(db.Integer, db.ForeignKey('Location.id'))

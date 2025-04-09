@@ -18,24 +18,36 @@
                maxlength="30" placeholder="if known, e.g. R6301" value="{{ part.part_number if part }}">
     </div>
 
-    <!-- Image Upload/Display -->
-    <div class="upload-section">
-        <!-- FilePond will replace this input -->
-        <input type="file" class="filepond" name="file" multiple>
+    <!-- Images -->
+    <div class="image-manager-section">
+        <h3>Part Images</h3>
         
-        <!-- Existing images in edit mode -->
-        <div id="existing-images" class="existing-images-grid">
-            {% if part %}
-                {% for image in part.images %}
-                <div class="existing-image-wrapper">
-                    <img src="{{ url_for('static', filename='images/' + image.filename) }}" 
-                        alt="{{ image.filename }}" class="existing-image" 
-                        data-image-id="{{ image.id }}">
-                        <button type="button" class="delete-image" data-image-id="{{ image.id }}">X</button>
-                    <input type="hidden" name="image_ids[]" value="{{ image.id }}">
-                </div>
-                {% endfor %}
-            {% endif %}
+        <!-- Combined container -->
+        <div class="unified-image-container">
+            <!-- FilePond upload zone -->
+            <div class="filepond-upload-zone">
+                <input type="file" class="filepond" name="file" multiple>
+            </div>
+            
+            <!-- Existing images grid (modified) -->
+            <div id="existing-images" class="existing-images-grid sortable-grid">
+                {% if part %}
+                    {% for image in part.images|sort(attribute='sort_order') %}
+                    <div class="image-tile" data-image-id="{{ image.id }}">
+                        <img src="{{ url_for('static', filename='images/' + image.filename) }}" 
+                            class="thumbnail" alt="{{ image.filename }}">
+                        <div class="image-controls">
+                            <button class="set-primary {% if image.is_primary %}active{% endif %}" 
+                                    data-image-id="{{ image.id }}">
+                                {{ '★ Primary' if image.is_primary else 'Set Primary' }}
+                            </button>
+                            <button class="delete-image" data-image-id="{{ image.id }}">X</button>
+                        </div>
+                        <input type="hidden" name="image_ids[]" value="{{ image.id }}">
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
         </div>
     </div>
 

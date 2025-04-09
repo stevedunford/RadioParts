@@ -459,12 +459,48 @@ p.part-details-top {
     padding-top: 20px;
 }
 
-/* Existing Images Grid */
+/* Image Manager */
+.image-manager-section {
+    margin: 2rem 0;
+    clear: both;
+}
+
+.unified-image-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.filepond-upload-zone {
+    min-height: 150px;
+}
+
 .existing-images-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 15px;
-    margin-top: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+.image-tile {
+    position: relative;
+    border: 1px solid var(--semi-light);
+    padding: 0.5rem;
+    background: white;
+}
+
+.image-controls {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+}
+
+.set-primary.active {
+    background: var(--primary);
+    color: var(--secondary);
+}
+
+.sortable-grid {
+    min-height: 100px;
 }
 
 .existing-image-wrapper {

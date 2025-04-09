@@ -5,8 +5,6 @@
  * - No missing code
  */
 
-console.log(window.partEditMode);
-
 // Helper function to show alerts
 function showAlert(message, type = "error") {
     // Remove existing alerts first
@@ -47,6 +45,54 @@ function showAlert(message, type = "error") {
     }, 8000);
 }
 
+// Image Sorting
+function initImageSorting() {
+    new Sortable(document.querySelector('.sortable-grid'), {
+        animation: 150,
+        handle: '.image-tile', // Whole tile is draggable
+        onEnd: async function() {
+            const order = Array.from(document.querySelectorAll('.image-tile'))
+                .map(el => el.dataset.imageId);
+            
+            await fetch('/parts/update_image_order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name="csrf_token"]').value
+                },
+                body: JSON.stringify({ order })
+            });
+        }
+    });
+}
+
+// Set primary image for part
+async function setAsPrimary(e) {
+    const btn = e.currentTarget;
+    const imageId = btn.dataset.imageId;
+    
+    try {
+        const response = await fetch(`/parts/set_primary_image/${imageId}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name="csrf_token"]').value
+            }
+        });
+        
+        if (response.ok) {
+            // Update UI
+            document.querySelectorAll('.set-primary').forEach(b => {
+                b.classList.remove('active');
+                b.textContent = 'Set Primary';
+            });
+            btn.classList.add('active');
+            btn.textContent = '★ Primary';
+        }
+    } catch (error) {
+        console.error('Error setting primary image:', error);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('click', function(e) {
         // Check if click came from a delete button or its × child
@@ -64,6 +110,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Missing data attributes on delete button');
             }
         }
+
+        // Initialize image sorting
+        initImageSorting();
+        
+        // Handle primary image selection
+        document.querySelectorAll('.set-primary').forEach(btn => {
+            btn.addEventListener('click', setAsPrimary);
+        });
     });
 
     // ======================

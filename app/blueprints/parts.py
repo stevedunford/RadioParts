@@ -412,3 +412,36 @@ def delete_image(image_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+
+
+@bp.route('/set_primary_image/<int:image_id>', methods=['POST'])
+def set_primary_image(image_id):
+    image = Image.query.get_or_404(image_id)
+
+    try:
+        # Reset current primary
+        Image.query.filter_by(part_id=image.part_id, is_primary=True).update({'is_primary': False})
+
+        # Set new primary
+        image.is_primary = True
+        db.session.commit()
+
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@bp.route('/update_image_order', methods=['POST'])
+def update_image_order():
+    try:
+        order = request.json.get('order', [])
+        for index, image_id in enumerate(order):
+            image = Image.query.get(image_id)
+            if image:
+                image.sort_order = index
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
