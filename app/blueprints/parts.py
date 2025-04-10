@@ -332,7 +332,7 @@ def upload_images():
         return jsonify({
             'error': 'You can only have 8 images per part',
             'message': 'Maximum 8 images allowed',
-            'userFriendly': '❌ Maximum 8 images per part (already has {current_count})'
+            'userFriendly': f' Maximum 8 images per part (already has {current_count})'
         }), 400
    
     # Get single file (FilePond sends one at a time)

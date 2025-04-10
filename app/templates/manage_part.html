@@ -22,35 +22,35 @@
     <div class="image-manager-section">
         <h3>Part Images</h3>
         
-        <!-- Combined container -->
-        <div class="unified-image-container">
-            <!-- FilePond upload zone -->
-            <div class="filepond-upload-zone">
-                <input type="file" class="filepond" name="file" multiple>
-            </div>
-            
-            <!-- Existing images grid (modified) -->
-            <div id="existing-images" class="existing-images-grid sortable-grid">
-                {% if part %}
-                    {% for image in part.images|sort(attribute='sort_order') %}
-                    <div class="image-tile" data-image-id="{{ image.id }}">
-                        <img src="{{ url_for('static', filename='images/' + image.filename) }}" 
-                            class="thumbnail" alt="{{ image.filename }}">
-                        <div class="image-controls">
-                            <button class="set-primary {% if image.is_primary %}active{% endif %}" 
-                                    data-image-id="{{ image.id }}">
-                                {{ '★ Primary' if image.is_primary else 'Set Primary' }}
-                            </button>
-                            <button class="delete-image" data-image-id="{{ image.id }}">X</button>
-                        </div>
-                        <input type="hidden" name="image_ids[]" value="{{ image.id }}">
+        <!-- Single unified container for ALL images -->
+        <div id="all-images-container" class="sortable-grid">
+            <!-- Existing images will render here -->
+            {% if part %}
+                {% for image in part.images|sort(attribute='sort_order') %}
+                <div class="image-tile" data-image-id="{{ image.id }}">
+                    <img src="{{ url_for('static', filename='images/' + image.filename) }}" 
+                         class="thumbnail" alt="{{ image.filename }}">
+                    <div class="image-controls">
+                        <button class="set-primary {% if image.is_primary %}active{% endif %}" 
+                                data-image-id="{{ image.id }}">
+                            {{ '★ Primary' if image.is_primary else 'Set Primary' }}
+                        </button>
+                        <button class="delete-image" data-image-id="{{ image.id }}">×</button>
                     </div>
-                    {% endfor %}
-                {% endif %}
-            </div>
+                </div>
+                {% endfor %}
+            {% endif %}
+            
+            <!-- FilePond will append new uploads here automatically -->
+        </div>
+        
+        <!-- FilePond upload zone (now separate from display area) -->
+        <div class="filepond-upload-zone">
+            <input type="file" class="filepond" name="file" multiple>
         </div>
     </div>
 
+    <label for="description">Description</label>
     <textarea name="description" maxlength="1024" placeholder="Description">
         {{- part.description if part -}}
     </textarea>
@@ -202,9 +202,20 @@ const pond = FilePond.create(document.querySelector('.filepond'), {
     stylePanelAspectRatio: 0.3,
     stylePanelLayout: 'integrated',
     styleLoadIndicatorPosition: 'center bottom',
-    styleProgressIndicatorPosition: 'right bottom',
-    styleButtonRemoveItemPosition: 'left bottom',
-    styleButtonProcessItemPosition: 'right bottom',
+    styleProgressIndicatorPosition: 'center below',
+    styleButtonRemoveItemPosition: 'right bottom',
+    onaddfilestart: (file) => { // Visual feedback callbacks
+        document.querySelector('.filepond--drop-label').style.opacity = '0.5';
+    },
+    onprocessfileprogress: (file, progress) => {
+        document.documentElement.style.setProperty('--upload-progress', `${progress}%`);
+        const indicator = file.element.querySelector('.filepond--progress-indicator');
+        if (indicator) {
+            indicator.innerHTML = `<span>${Math.round(progress)}%</span>`;
+        }
+    },
+    allowProcessIndicator: true,
+    forceRevert: false,
     credits: false,
     allowDrop: true,
     dropOnPage: true,
@@ -217,6 +228,12 @@ const pond = FilePond.create(document.querySelector('.filepond'), {
             Maximum 8 images • JPG/PNG/GIF only
         </div>
     `,
+    onupdatefiles: (files) => {
+        const form = document.getElementById('part-form');
+        form.style.paddingBottom = files.length ? 
+            `${document.querySelector('.filepond--list-scroller').offsetHeight + 20}px` 
+            : '0';
+    },
     beforeAddFile: (file) => {
         // Force fresh CSRF token
         const tokenInput = document.querySelector('[name="csrf_token"]');
@@ -238,67 +255,82 @@ const pond = FilePond.create(document.querySelector('.filepond'), {
         return true;
     },
     server: {
-        url: '/parts',
-        process: {
-            url: '/upload_images',
-            method: 'POST',
-            headers: {
-                'X-CSRF-Token': document.querySelector('[name="csrf_token"]').value
-            },
-            ondata: (formData) => {
-                formData.append('part_id', document.querySelector('[name="part_id"]').value);
-                return formData;
-            },
-            onerror: (response) => {
-                let errorMsg = 'Upload failed';
-                try {
-                    const errorData = JSON.parse(response);
-                    errorMsg = errorData.error || errorData.message || errorMsg;
-                } catch (e) {
-                    console.error('Error parsing error response:', e);
-                }
-                showAlert(errorMsg, 'error');
-            },
+    url: '/parts', // Base URL
+    process: {
+        url: '/upload_images',
+        method: 'POST',
+        headers: {
+            'X-CSRF-Token': document.querySelector('[name="csrf_token"]').value
         },
-        revert: (uniqueFileId, load, error) => {
-            const fileData = JSON.parse(uniqueFileId);
-            const imageId = fileData.id;
-            
-            fetch(`/parts/delete_image/${imageId}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-Token': document.querySelector('[name="csrf_token"]').value,
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => {
-                if (!response.ok) throw new Error('Delete failed');
-                return response.json();
-            })
-            .then(data => data.success ? load() : error(data.message))
-            .catch(err => error(err.message));
+        ondata: (formData) => {
+            formData.append('part_id', window.partId || ''); // Ensure part_id is sent
+            return formData;
+        },
+        onload: (response) => {
+            try {
+                const imageData = JSON.parse(response);
+                const container = document.getElementById('all-images-container');
+                container.insertAdjacentHTML('beforeend', `
+                    <div class="image-tile" data-image-id="${imageData.id}">
+                        <img src="${imageData.url}" class="thumbnail">
+                        <div class="image-controls">
+                            <button class="set-primary" data-image-id="${imageData.id}">
+                                Set Primary
+                            </button>
+                            <button class="delete-image" data-image-id="${imageData.id}">
+                                X
+                            </button>
+                        </div>
+                        <input type="hidden" name="image_ids[]" value="${imageData.id}">
+                    </div>
+                `);
+                // Nuclear option - completely reset FilePond
+                setTimeout(() => {
+                    pond.removeFiles(); // Remove ALL files
+                    //pond.reset(); // Full state reset // apparently not a real function
+                }, 500); // Brief delay for visual feedback
+            } catch (e) {
+                console.error('Failed to process upload response:', e);
+                return null;
+            }
+        },
+        onerror: (response, file) => {
+            try {
+                // Parse JSON error response
+                const errorData = JSON.parse(response);
+                
+                // Use userFriendly message if available, fallback to message or error
+                const displayMessage = errorData.userFriendly || 
+                                     errorData.message || 
+                                     errorData.error || 
+                                     'Upload failed';
+                console.log(displayMessage);
+
+                // Show styled alert
+                showAlert(displayMessage.replace('{current_count}', pond.getFiles().length), 'error');
+
+                // Set FilePond error state with clean message
+                //file.setStatus('error', displayMessage);
+
+                // Auto-remove after delay
+                setTimeout(() => pond.removeFile(file), 3000);
+
+            } catch (e) {
+                // Fallback for non-JSON errors
+                showAlert('Upload failed', 'error');
+                setTimeout(() => pond.removeFile(file), 2000);
+            }
         }
     }
+}
 });
 
-// After FilePond initialization
+// Nuclear option for excess files
 pond.on('addfile', (error, file) => {
-    if (error) {   
-        showAlert(error.message, 'error');
-        return;
-    }
-
-    // Check the file limit first - only 8 per part
     if (pond.getFiles().length > 8) {
-        showAlert('Maximum 8 images allowed per part', 'error');
-        pond.removeFile(file);
+        showAlert('Maximum 8 images allowed', 'error');
+        setTimeout(() => pond.removeFile(file), 500);
     }
-
-    // Move new uploads to a separate container
-    const uploadContainer = document.createElement('div');
-    uploadContainer.className = 'new-uploads-container';
-    document.querySelector('.upload-section').appendChild(uploadContainer);
-    pond.element.parentNode.appendChild(uploadContainer);
 });
 
 </script>

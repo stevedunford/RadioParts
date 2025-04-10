@@ -102,12 +102,13 @@ document.addEventListener('DOMContentLoaded', function() {
             e.stopPropagation();
             
             const imageId = deleteBtn.dataset.imageId;
-            const wrapper = deleteBtn.closest('.existing-image-wrapper');
+            const wrapper = deleteBtn.closest('.image-tile');
             
             if (imageId && wrapper) {
                 deleteImage(imageId, wrapper);
             } else {
                 console.error('Missing data attributes on delete button');
+                return;
             }
         }
 
