@@ -193,8 +193,8 @@
                 <a href="{{ url_for('parts.view_part', part_id=part.id) }}" class="card-link">
                     <article class="part-card">
                         <div class="part-thumbnail">
-                            {% if part.images %}
-                            <img src="{{ url_for('static', filename='images/' + part.images[0].filename) }}"
+                            {% if part.primary_image %}
+                            <img src="{{ url_for('static', filename='images/' + part.primary_image.filename) }}"
                                 alt="{{ part.name }}"
                                 loading="lazy">
                             {% else %}
@@ -348,6 +348,17 @@ function updateItemsPerPage(value) {
     url.searchParams.set('page', 1); // Reset to first page
     window.location.href = url.toString();
 }
+
+// Gallery image selection functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const mainImage = document.querySelector('.main-image-wrapper img');
+    const thumbnails = document.querySelectorAll('.thumbnail');
+    
+    // Set first thumbnail as active by default
+    if (thumbnails.length > 0) {
+        thumbnails[0].classList.add('active');
+    }
+
 </script>
 
 {% endblock %}

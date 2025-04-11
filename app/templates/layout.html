@@ -44,6 +44,11 @@
 
         <!-- User Controls (placeholder) -->
         <div class="nav-user">
+            <button class="theme-toggle" aria-label="Toggle dark mode">
+                <i class="fas fa-adjust"></i> <!-- Font Awesome icon, adjust as needed -->
+            </button>
+        </div>
+        <div class="nav-user">
             <a href="#" class="login-prompt"><i class="fas fa-user"></i> Sign In</a>
         </div>
     </nav>
@@ -84,6 +89,49 @@
                 }
             });
         });
+
+        // Light / Dark mode control
+        document.addEventListener('DOMContentLoaded', function() {
+        const themeToggle = document.querySelector('.theme-toggle');
+        const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+        
+        // Initialize theme
+        let currentTheme = localStorage.getItem('theme') || 
+                        (prefersDarkScheme.matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        
+        // Update button text based on current theme
+        updateButtonText();
+        
+        // Toggle theme on button click
+        themeToggle.addEventListener('click', function() {
+            currentTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            localStorage.setItem('theme', currentTheme);
+            updateButtonText();
+        });
+        
+        function updateButtonText() {
+            const icon = themeToggle.querySelector('i');
+            if (document.documentElement.getAttribute('data-theme') === 'dark') {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+                themeToggle.setAttribute('aria-label', 'Switch to light mode');
+            } else {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+                themeToggle.setAttribute('aria-label', 'Switch to dark mode');
+            }
+        }
+        
+        // Watch for system theme changes
+        prefersDarkScheme.addListener(e => {
+            if (!localStorage.getItem('theme')) {
+                document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+                updateButtonText();
+            }
+        });
+    });
 
         document.cookie = "session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
         document.cookie = "login_cookie=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";

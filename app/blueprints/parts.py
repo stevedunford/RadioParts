@@ -117,6 +117,10 @@ def gallery():
         func.count(part_tags.c.part_id).label('count')
     ).join(part_tags).group_by(Tag.name).order_by(Tag.name.asc()).all()
     
+    # Make sure each part has its primary image identified
+    for part in parts.items:
+        part.primary_image = next((img for img in part.images if img.is_primary), part.images[0] if part.images else None)
+
     return render_template(
         'gallery.html',
         parts=parts,
