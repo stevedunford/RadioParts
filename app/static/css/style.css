@@ -34,16 +34,11 @@
     
     /* Radio-inspired decorative elements */
     --radio-dial: linear-gradient(135deg, transparent 50%, var(--primary) 50%);
-    --radio-grill: repeating-linear-gradient(
-        90deg,
-        var(--secondary),
-        var(--secondary) 2px,
-        transparent 2px,
-        transparent 6px
-    );
 }
 
+/* =================== */
 /* Dark mode overrides */
+/* =================== */
 [data-theme="dark"] {
     --bg-color: var(--secondary);
     --text-color: var(--light);
@@ -52,8 +47,64 @@
     --nav-text: var(--light);
 }
 
+[data-theme="dark"] .part-thumbnail img {
+    background-color: var(--dark);
+    border: 2px solid var(--accent);
+}
+
+[data-theme="dark"] .art-deco-form {
+    background: #2a2d34;  /* Darker than current */
+    border-color: #817b57;  /* Muted gold */
+    box-shadow: 8px 8px 0 #1a1a1a;  /* Darker shadow */
+    color: #f8f5f2;  /* Light text */
+}
+
+[data-theme="dark"] .art-deco-form label,
+[data-theme="dark"] .part-info h3 {
+    color: var(--primary);
+}
+
+[data-theme="dark"] span.brand {
+    color: var(--light);
+}
+
+[data-theme="dark"] .art-deco-form input[type="text"],
+[data-theme="dark"] .art-deco-form textarea,
+[data-theme="dark"] .art-deco-form select {
+    background: #3a3d44 !important;  /* Slightly lighter than form */
+    border-color: #817b57 !important;  /* Muted gold */
+    color: #f8f5f2 !important;  /* Light text */
+}
+
+[data-theme="dark"] .art-deco-form input[type="text"]:focus,
+[data-theme="dark"] .art-deco-form textarea:focus {
+    box-shadow: 0 0 0 3px rgba(230, 194, 41, 0.3) !important;
+}
+
+[data-theme="dark"] .tag-manager {
+    background: #3a3d44 !important;  /* Matching input fields */
+    border-left: 4px solid var(--primary) !important;
+}
+
+[data-theme="dark"] .filepond--root *,
+[data-theme="dark"] .filepond--hopper {
+    background: var(--dark) !important;
+}
+
+[data-theme="dark"] .searchable-dropdown input[type="text"],
+[data-theme="dark"] .dropdown-options {
+    background: #3a3d44;
+    border-color: #817b57;
+    color: #f8f5f2;
+}
+
+[data-theme="dark"] .filter-option:hover {
+    background: rgba(230, 194, 41, 0.2);
+}
+
+
 /* ==================== */
-/* BASE STYLES */
+/*     BASE STYLES      */
 /* ==================== */
 body {
     font-family: var(--font-main);
@@ -72,9 +123,7 @@ body::before {
     left: 0;
     right: 0;
     height: 8px;
-    background: var(--radio-grill);
     z-index: 100;
-    box-shadow: var(--shadow-sm);
 }
 
 h1, h2, h3, h4 {
@@ -85,7 +134,7 @@ h1, h2, h3, h4 {
 }
 
 /* ==================== */
-/* TYPOGRAPHY */
+/*      TYPOGRAPHY      */
 /* ==================== */
 .art-deco-header h1 {
     font-family: 'Poiret One', serif;
@@ -476,7 +525,7 @@ h1, h2, h3, h4 {
 }
 
 .art-deco-form .form-group {
-    margin-bottom: 0.8rem;
+    margin-bottom: 1.5rem;
     position: relative;
 }
 
@@ -553,21 +602,81 @@ h1, h2, h3, h4 {
 /* ==================== */
 /* IMAGE MANAGEMENT */
 /* ==================== */
-.filepond--root {
-    position: relative;
-    min-height: 200px;
-    max-height: 250px;
-    max-width: 800px;
-    margin-bottom: 20px;
-    border: 2px dashed var(--semi-light);
-    border-radius: 8px;
-    background: var(--card-bg);
-    transition: all 0.3s ease;
+/* FilePond Container */
+.filepond--root * {
+    background: transparent !important;
 }
 
-.filepond--root:hover {
-    border-color: var(--primary);
-    background: rgba(230, 194, 41, 0.05);
+.filepond--root {
+    position: relative;
+    background-color: var(--light);
+    min-height: 200px;
+    margin-bottom: 2rem;
+    overflow: visible !important;
+    border: 2px dashed var(--accent);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+  
+  /* Panel containing the drop area */
+  .filepond--panel-root {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 100%;
+    z-index: 1;
+  }
+  
+  /* Clickable drop label */
+  .filepond--drop-label {
+    z-index: 2;
+    pointer-events: auto;
+  }
+  
+  /* List container */
+  .filepond--list {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 0.5em;
+    pointer-events: none;
+  }
+  
+  /* Individual items */
+  .filepond--item {
+    position: relative;
+    width: calc(25% - 1em);
+    margin: 0.5em;
+    z-index: 4;
+    pointer-events: auto;
+  }
+  
+  /* Image previews */
+  .filepond--image-preview {
+    z-index: 5;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  /* Progress indicator */
+  .filepond--file-status {
+    z-index: 6;
+  }
+  
+  /* Failed uploads */
+  .filepond--item[data-filepond-item-state*='error'] {
+    animation: fadeOut 0.5s ease 5s forwards;
+    z-index: 7;
+  }
+
+.sortable-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
 }
 
 .existing-images-grid {
@@ -604,6 +713,32 @@ h1, h2, h3, h4 {
     background: rgba(0,0,0,0.05);
 }
 
+
+.image-tile {
+    position: relative;
+    width: 100%;
+    margin: 0;
+}
+
+.image-tile img {
+    width: 100%;
+    height: 150px;
+    object-fit: contain;
+    background: white;
+    border: 1px solid var(--semi-light);
+}
+
+.sortable-grid .image-tile.sortable-chosen {
+    opacity: 0.8;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+.sortable-grid .image-tile.sortable-ghost {
+    opacity: 0.5;
+    background: rgba(230, 194, 41, 0.2);
+}
+
+/* Delete controls */
 .delete-image {
     background: var(--error);
     color: white;
@@ -721,7 +856,6 @@ h1, h2, h3, h4 {
     margin: 0 auto;
     padding: 2rem;
     background: transparent;
-    border: 3px solid var(--primary);
     box-shadow: var(--shadow-lg);
 }
 
@@ -755,14 +889,20 @@ h1, h2, h3, h4 {
     margin: 2rem 0;
 }
 
+/* Main image container */
 .main-image-wrapper {
+    position: relative;
     width: 100%;
     max-width: 800px;
     margin: 0 auto 20px;
+}
+
+.main-image-container {
+    position: relative;
     border: 3px solid var(--primary);
     padding: 5px;
     background: var(--card-bg);
-    text-align: center; /* Ensures centering for inline elements */
+    text-align: center;
 }
 
 .constrained-image {
@@ -773,10 +913,11 @@ h1, h2, h3, h4 {
     display: block;
 }
 
+/* Primary badge - now properly positioned on image */
 .primary-badge {
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 15px;
+    right: 15px;
     background: rgba(0,0,0,0.7);
     color: gold;
     padding: 5px;
@@ -786,6 +927,36 @@ h1, h2, h3, h4 {
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 2;
+}
+
+/* Thumbnail indicator (keep existing but ensure it's different) */
+.thumbnail-container .primary-indicator {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background: rgba(0,0,0,0.7);
+    color: gold;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+}
+
+.set-primary {
+    background: var(--primary);
+    color: var(--secondary);
+    border: none;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+}
+
+.set-primary.active {
+    background: var(--accent);
+    color: white;
 }
 
 .thumbnail-strip {
@@ -881,7 +1052,7 @@ h1, h2, h3, h4 {
 
 /* Part Metadata */
 .part-meta {
-    margin-top: 2rem;
+    margin-top: 1rem;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 1rem;
@@ -1086,6 +1257,77 @@ h1, h2, h3, h4 {
     gap: 0.5rem;
 }
 
+.searchable-dropdown {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.searchable-dropdown input[type="text"] {
+    width: 86%;
+    padding: 0.5rem 1rem;
+    border: 2px solid var(--semi-light);
+    background: var(--card-bg);
+    color: var(--text-color);
+    font-family: var(--font-main);
+    margin-bottom: 0.5rem;
+}
+
+.searchable-dropdown input[type="text"]:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(230, 194, 41, 0.3);
+}
+
+.dropdown-options {
+    max-height: 300px;
+    overflow-y: auto;
+    background: var(--card-bg);
+    border: 2px solid var(--semi-light);
+    padding: 0.5rem;
+    position: relative;
+    z-index: 10;
+}
+
+/* Scrollbar styling */
+.dropdown-options::-webkit-scrollbar {
+    width: 8px;
+}
+
+.dropdown-options::-webkit-scrollbar-track {
+    background: rgba(230, 194, 41, 0.1);
+}
+
+.dropdown-options::-webkit-scrollbar-thumb {
+    background-color: var(--primary);
+    border-radius: 4px;
+}
+
+/* Active state for selected option */
+.filter-option input[type="radio"]:checked + span {
+    font-weight: bold;
+    color: var(--primary);
+}
+
+.filter-option {
+    display: block;
+    padding: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.filter-option:hover {
+    background: rgba(230, 194, 41, 0.1);
+    border-left-color: var(--primary);
+}
+
+.filter-option input[type="radio"] {
+    margin-right: 0.75rem;
+    accent-color: var(--primary);
+}
+
+
+
 /* ==================== */
 /* TAG MANAGEMENT */
 /* ==================== */
@@ -1255,6 +1497,10 @@ h1, h2, h3, h4 {
     100% { background-color: rgba(76, 175, 80, 0.3); }
 }
 
+@keyframes fadeOut {
+    to { opacity: 0; height: 0; padding: 0; margin: 0; }
+}
+
 /* ==================== */
 /* RESPONSIVE ADJUSTMENTS */
 /* ==================== */
@@ -1291,10 +1537,17 @@ h1, h2, h3, h4 {
         border-bottom: 3px solid var(--primary);
     }
 
+    .searchable-dropdown input[type="text"] {
+        width: 95%;
+
     .existing-images-grid {
         grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     }
     
+    .sortable-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+
     .art-deco-nav {
         flex-direction: column;
         height: auto;

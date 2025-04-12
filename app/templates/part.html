@@ -21,17 +21,19 @@
     <div class="image-gallery">
         {% if part.images %}
             {# Get primary image or first image if none marked primary #}
-            {% set primary_image = part.images|selectattr('is_primary')|first or part.images|sort(attribute='sort_order')|first %}
-            
-            <div class="main-image-wrapper" onclick="openImageModal('{{ url_for('static', filename='images/' + primary_image.filename) }}')">
-                <img src="{{ url_for('static', filename='images/' + primary_image.filename) }}" 
-                     alt="{{ part.name }}"
-                     class="constrained-image">
-                {% if part.images|length > 1 %}
-                <div class="primary-badge" title="Primary Image">
-                    <i class="fas fa-star"></i>
+            {% set primary_image = part.images|selectattr('is_primary')|first %}
+            {% set display_image = primary_image or part.images|sort(attribute='sort_order')|first %}
+            <div class="main-image-wrapper">
+                <div class="main-image-container">
+                    <img src="{{ url_for('static', filename='images/' + display_image.filename) }}" 
+                         alt="{{ part.name }}"
+                         class="constrained-image">
+                    {% if primary_image and display_image.id == primary_image.id and part.images|length > 1 %}
+                    <div class="primary-badge" title="Primary Image">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    {% endif %}
                 </div>
-                {% endif %}
             </div>
             
             {% if part.images|length > 1 %}
@@ -42,7 +44,7 @@
                     <img src="{{ url_for('static', filename='images/' + image.filename) }}" 
                          alt="Thumbnail {{ loop.index }}"
                          class="thumbnail">
-                    {% if image.is_primary %}
+                    {% if image.is_primary and part.images|length > 1 %}
                     <div class="primary-indicator">
                         <i class="fas fa-star"></i>
                     </div>

@@ -269,17 +269,68 @@
 </div>
 
 <script>
+// Update your existing filterBrands() function
 function filterBrands() {
     const input = document.getElementById('brandSearch');
     const filter = input.value.toUpperCase();
     const options = document.getElementById('brandOptions');
-    const labels = options.getElementsByTagName('label');
+    const labels = options.querySelectorAll('label.filter-option');
     
-    for (let i = 0; i < labels.length; i++) {
-        const text = labels[i].textContent || labels[i].innerText;
-        labels[i].style.display = text.toUpperCase().includes(filter) ? "" : "none";
+    let hasVisibleOptions = false;
+    
+    labels.forEach(label => {
+        const text = label.textContent || label.innerText;
+        const isVisible = text.toUpperCase().includes(filter);
+        label.style.display = isVisible ? "" : "none";
+        
+        if (isVisible) hasVisibleOptions = true;
+    });
+    
+    // Show/hide the "All Brands" option based on search
+    const allBrandsOption = options.querySelector('label.filter-option:first-child');
+    allBrandsOption.style.display = filter ? "none" : "";
+    
+    // Add visual feedback when no results
+    if (!hasVisibleOptions && filter) {
+        if (!options.querySelector('.no-results')) {
+            const noResults = document.createElement('div');
+            noResults.className = 'no-results';
+            noResults.textContent = 'No brands found';
+            options.appendChild(noResults);
+        }
+    } else {
+        const noResults = options.querySelector('.no-results');
+        if (noResults) noResults.remove();
     }
 }
+
+// Add focus/blur handling
+document.addEventListener('DOMContentLoaded', function() {
+    const dropdown = document.querySelector('.searchable-dropdown');
+    const input = document.getElementById('brandSearch');
+    const options = document.getElementById('brandOptions');
+    
+    input.addEventListener('focus', function() {
+        options.style.display = 'block';
+        dropdown.classList.add('active');
+    });
+    
+    input.addEventListener('blur', function() {
+        // Small delay to allow click events to register
+        setTimeout(() => {
+            options.style.display = 'none';
+            dropdown.classList.remove('active');
+        }, 200);
+    });
+    
+    // Close when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!dropdown.contains(e.target)) {
+            options.style.display = 'none';
+            dropdown.classList.remove('active');
+        }
+    });
+});
 
 // Preserve filters when changing pages
 document.addEventListener('DOMContentLoaded', function() {
@@ -358,6 +409,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (thumbnails.length > 0) {
         thumbnails[0].classList.add('active');
     }
+});
 
 </script>
 

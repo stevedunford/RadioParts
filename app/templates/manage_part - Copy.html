@@ -8,7 +8,7 @@
 
     <!-- Name/Description Fields -->
     <div class="form-group">
-        <label for="name">Name</label>
+        <label for="name">Part Name</label>
         <input type="text" id="name" name="name" 
                maxlength="100" placeholder="" value="{{ part.name if part }}">
     </div>
@@ -20,7 +20,7 @@
 
     <!-- Images -->
     <div class="image-manager-section">
-        <label for="images">Images</label>
+        <h3>Part Images</h3>
         
         <!-- Single unified container for ALL images -->
         <div id="all-images-container" class="sortable-grid">
@@ -177,117 +177,192 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
 <script>
+if (pond) {
+  pond.destroy();
+}
+
 // Set edit mode flag properly
 window.partEditMode = {{ 'true' if part else 'false' }};
 window.partId = {{ part.id if part else 'null' }};
 
-// Register plugins first
+// Register plugins
 FilePond.registerPlugin(
     FilePondPluginImageResize,
     FilePondPluginImagePreview,
     FilePondPluginImageExifOrientation
 );
 
-// Initialize FilePond after DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    // Destroy existing instance if it exists
-    if (window.pond) {
-        window.pond.destroy();
-    }
-
-    // Create new FilePond instance
-    window.pond = FilePond.create(document.querySelector('.filepond'), {
-        maxFiles: 8,
-        maxFileSize: '16MB',
-        acceptedFileTypes: ['image/*'],
-        allowMultiple: true,
-        allowProcess: true,
-        instantUpload: true,
-        credits: false,
-        
-        // Server configuration
-        server: {
-            url: '/parts',
-            process: {
-                url: '/upload_images',
-                method: 'POST',
-                headers: {
-                    'X-CSRF-Token': document.querySelector('[name="csrf_token"]').value
-                }
-            }
-        },
-
-        // Event handlers
-        onaddfile: (error, file) => {
-            if (error) return;
-            
-            // Strict file count enforcement
-            const existingCount = document.querySelectorAll('.image-tile').length;
-            if (existingCount + pond.getFiles().length > 8) {
-                pond.removeFile(file);
-                showAlert('Maximum 8 images allowed', 'error');
-            }
-        },
-
-        onprocessfile: (error, file) => {
-            if (error) return;
-            
-            // Add the new image to the grid
-            const response = JSON.parse(file.serverId);
-            const container = document.getElementById('all-images-container');
-            container.insertAdjacentHTML('beforeend', `
-                <div class="image-tile" data-image-id="${response.id}">
-                    <img src="${response.url}" class="thumbnail">
-                    <div class="image-controls">
-                        <button class="set-primary" data-image-id="${response.id}">
-                            Set Primary
-                        </button>
-                        <button class="delete-image" data-image-id="${response.id}">
-                            X
-                        </button>
-                    </div>
-                    <input type="hidden" name="image_ids[]" value="${response.id}">
-                </div>
-            `);
-
-            // Add event listener to the new button
-            container.querySelector(`.set-primary[data-image-id="${response.id}"]`)
-                .addEventListener('click', setAsPrimary);
-            
-            // Reinitialize SortableJS after adding new image
-            initImageSorting();
-            
-            // Clear the upload queue
-            setTimeout(() => pond.removeFile(file), 300);
+// Create FilePond instance
+const pond = FilePond.create(document.querySelector('.filepond'), {
+    maxFiles: 8,
+    maxFileSize: '16MB',
+    maxParallelUploads: 3,
+    allowMultiple: true,
+    maxFilesExceededCallback: (files) => {
+        showAlert('Maximum 8 images allowed per part', 'error');
+    },
+    acceptedFileTypes: ['image/gif', 'image/jpg', 'image/jpeg', 'image/png'],
+    imageResizeTargetWidth: 1200,
+    imageResizeMode: 'contain',
+    imageResizeUpscale: false,
+    stylePanelAspectRatio: 0.3,
+    stylePanelLayout: 'integrated',
+    styleLoadIndicatorPosition: 'center bottom',
+    styleProgressIndicatorPosition: 'center below',
+    styleButtonRemoveItemPosition: 'right bottom',
+    onaddfilestart: (file) => { // Visual feedback callbacks
+        document.querySelector('.filepond--drop-label').style.opacity = '0.5';
+    },
+    onprocessfileprogress: (file, progress) => {
+        document.documentElement.style.setProperty('--upload-progress', `${progress}%`);
+        const indicator = file.element.querySelector('.filepond--progress-indicator');
+        if (indicator) {
+            indicator.innerHTML = `<span>${Math.round(progress)}%</span>`;
         }
-    });
-
-    // Initialize image sorting
-    function initImageSorting() {
-        new Sortable(document.getElementById('all-images-container'), {
-            animation: 150,
-            handle: '.image-tile',
-            onEnd: async function() {
-                const order = Array.from(document.querySelectorAll('.image-tile'))
-                    .map(el => el.dataset.imageId);
-                
-                await fetch('/parts/update_image_order', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name="csrf_token"]').value
-                    },
-                    body: JSON.stringify({ order })
-                });
+    },
+    allowProcessIndicator: true,
+    forceRevert: false,
+    credits: false,
+    allowDrop: true,
+    dropOnPage: true,
+    dropOnElement: false,
+    labelIdle: `
+        <span style="font-size: 1.2em;">
+            Drag & drop images or <span class="filepond--label-action">browse</span>
+        </span>
+        <div style="margin-top: 1em; font-size: 0.9em; color: #666;">
+            Maximum 8 images • JPG/PNG/GIF only
+        </div>
+    `,
+    onupdatefiles: (files) => {
+        const form = document.getElementById('part-form');
+        form.style.paddingBottom = files.length ? 
+            `${document.querySelector('.filepond--list-scroller').offsetHeight + 20}px` 
+            : '0';
+    },
+    beforeAddFile: (file) => {
+        // Force fresh CSRF token
+        const tokenInput = document.querySelector('[name="csrf_token"]');
+        if (tokenInput) {
+            tokenInput.value = "{{ csrf_token() }}";  // Jinja2 re-render
+        }
+        return true;
+    },
+    beforeProcessFile: (file) => {
+        // Force raw token format
+        const tokenInput = document.querySelector('[name="csrf_token"]');
+        if (tokenInput) {
+            // Extract raw token if it's serialized
+            const rawToken = tokenInput.value.startsWith('Im') ? 
+                tokenInput.value.split('.')[0].slice(2) : 
+                tokenInput.value;
+            tokenInput.value = rawToken;
+        }
+        return true;
+    },
+    onaddfile: (error, file) => {
+        if (error) return;
+        
+        // Strict enforcement of 8-file limit
+        const totalFiles = document.querySelectorAll('.image-tile').length + pond.getFiles().length;
+        if (totalFiles >= 8) {
+        pond.removeFile(file);
+        showAlert('Maximum 8 images allowed', 'error');
+        return;
+        }
+    },
+    onprocessfileprogress: (file, progress) => {
+        // Force preview visibility
+        const preview = file.element.querySelector('.filepond--image-preview-wrapper');
+        if (preview) {
+        preview.style.display = 'block';
+        preview.style.opacity = '1';
+        }
+    },
+    server: {
+    url: '/parts', // Base URL
+    process: {
+        url: '/upload_images',
+        method: 'POST',
+        headers: {
+            'X-CSRF-Token': document.querySelector('[name="csrf_token"]').value
+        },
+        ondata: (formData) => {
+            formData.append('part_id', window.partId || ''); // Ensure part_id is sent
+            return formData;
+        },
+        onload: (response) => {
+            try {
+                const imageData = JSON.parse(response);
+                const container = document.getElementById('all-images-container');
+                container.insertAdjacentHTML('beforeend', `
+                    <div class="image-tile" data-image-id="${imageData.id}">
+                        <img src="${imageData.url}" class="thumbnail">
+                        <div class="image-controls">
+                            <button class="set-primary" data-image-id="${imageData.id}">
+                                Set Primary
+                            </button>
+                            <button class="delete-image" data-image-id="${imageData.id}">
+                                X
+                            </button>
+                        </div>
+                        <input type="hidden" name="image_ids[]" value="${imageData.id}">
+                    </div>
+                `);
+                // Nuclear option - completely reset FilePond
+                setTimeout(() => {
+                    pond.removeFiles(); // Remove ALL files
+                    //pond.reset(); // Full state reset // apparently not a real function
+                }, 500); // Brief delay for visual feedback
+            } catch (e) {
+                console.error('Failed to process upload response:', e);
+                return null;
             }
-        });
-    }
+        },
+        onerror: (response, file) => {
+            try {
+                // Parse JSON error response
+                const errorData = JSON.parse(response);
+                
+                // Use userFriendly message if available, fallback to message or error
+                const displayMessage = errorData.userFriendly || 
+                                     errorData.message || 
+                                     errorData.error || 
+                                     'Upload failed';
+                console.log(displayMessage);
 
-    // Initialize sorting for existing images
-    if (document.querySelectorAll('.image-tile').length > 0) {
-        initImageSorting();
+                // Show styled alert
+                showAlert(displayMessage.replace('{current_count}', pond.getFiles().length), 'error');
+
+                // Set FilePond error state with clean message
+                //file.setStatus('error', displayMessage);
+
+                // Auto-remove after delay
+                setTimeout(() => pond.removeFile(file), 3000);
+
+            } catch (e) {
+                // Fallback for non-JSON errors
+                showAlert('Upload failed', 'error');
+                setTimeout(() => pond.removeFile(file), 2000);
+            }
+        }
+    }
+}
+});
+
+// Update existing images count
+function updateExistingImagesCount() {
+  return document.querySelectorAll('.image-tile').length;
+}
+
+// Nuclear option for excess files
+pond.on('addfile', (error, file) => {
+    if (pond.getFiles().length > 8) {
+        showAlert('Maximum 8 images allowed', 'error');
+        setTimeout(() => pond.removeFile(file), 500);
     }
 });
+
 </script>
 
 <!-- Main form handler -->

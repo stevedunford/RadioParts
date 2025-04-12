@@ -68,6 +68,9 @@ function initImageSorting() {
 
 // Set primary image for part
 async function setAsPrimary(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
     const btn = e.currentTarget;
     const imageId = btn.dataset.imageId;
     
@@ -87,13 +90,22 @@ async function setAsPrimary(e) {
             });
             btn.classList.add('active');
             btn.textContent = '★ Primary';
+            
+            // Don't redirect - stay on edit page
+            showAlert('Primary image set successfully', 'success');
         }
     } catch (error) {
         console.error('Error setting primary image:', error);
+        showAlert('Failed to set primary image', 'error');
     }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize primary image buttons
+    document.querySelectorAll('.set-primary').forEach(btn => {
+        btn.addEventListener('click', setAsPrimary);
+    });
+    
     document.addEventListener('click', function(e) {
         // Check if click came from a delete button or its × child
         const deleteBtn = e.target.closest('.delete-image');
@@ -112,13 +124,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Initialize image sorting
-        initImageSorting();
+    // Initialize image sorting
+    initImageSorting();
         
-        // Handle primary image selection
-        document.querySelectorAll('.set-primary').forEach(btn => {
-            btn.addEventListener('click', setAsPrimary);
-        });
     });
 
     // ======================
