@@ -115,8 +115,8 @@ class Part(db.Model):
     def get_price(self, user=None):
         """Return appropriate price based on user status"""
         if user and hasattr(user, 'is_member') and user.is_member:
-            return self.price_member
-        return self.price_non_member
+            return self.price_member if self.price_member else 0
+        return self.price_non_member if self.price_non_member else 0
 
 
 class PartType(db.Model):

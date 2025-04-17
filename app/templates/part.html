@@ -96,10 +96,14 @@
                 Price:
             </span>
             <span class="meta-value">
-                NZ$ {{ "%.2f"|format(part.get_price(current_user if current_user.is_authenticated else None)) }}
-                {% if current_user.is_authenticated and current_user.is_member %}
-                    <span class="badge bg-success">(NZVRS Member Pricing Only)</span>
-                {% endif %}
+                {% if part.get_price(current_user if current_user.is_authenticated else None) %}
+                    NZ$ {{ "%.2f"|format(part.get_price(current_user if current_user.is_authenticated else None)) }}
+                    {% if current_user.is_authenticated and current_user.is_member %}
+                        <span class="badge bg-success">(NZVRS Member Pricing Only)</span>
+                    {% endif %}
+                {% else %}
+                    TBA
+                {% endif%}
             </span>
         </div>
         <div class="meta-item">
