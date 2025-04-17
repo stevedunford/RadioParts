@@ -92,14 +92,10 @@
     <!-- Box and Position -->
     <div class="form-row">
         <div class="form-group">
-            <label for="box">Storage Location in Library</label>
-            <input type="text" id="box" name="box" maxlength="20" 
-                placeholder="Box / container number" value="{{ part.box if part }}">
-        </div>
-        <div class="form-group">
-            <label for="box">Position in/on Box/Container/Shelf</label>
-            <input type="text" id="position" name="position" maxlength="50"
-                placeholder="Location in the store" value="{{ part.position if part }}">
+            <label for="storage_details">Storage Details</label>
+            <input type="text" id="storage_details" name="storage_details" maxlength="200" 
+                   placeholder="e.g. 'Box 3A, Bottom Shelf' or 'Cabinet 2, Drawer 5'"
+                   value="{{ part.storage_details if part }}">
         </div>
     </div>
 

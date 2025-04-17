@@ -1,7 +1,8 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timezone
 from slugify import slugify  # Requires python-slugify package
-
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import UserMixin
 
 db = SQLAlchemy()
 
@@ -13,8 +14,48 @@ part_tags = db.Table('part_tags',
 )
 
 
+class User(UserMixin, db.Model):
+    __tablename__ = 'User'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128))
+    role = db.Column(db.String(20), default='user')  # 'user', 'admin', 'superadmin'
+    active = db.Column(db.Boolean, default=True)
+    membership_number = db.Column(db.Integer, unique=True)
+    last_login = db.Column(db.DateTime)
+    first_name = db.Column(db.String(50))
+    last_name = db.Column(db.String(50))
+    phone = db.Column(db.String(20))
+    address_line1 = db.Column(db.String(100))
+    address_line2 = db.Column(db.String(100))
+    city = db.Column(db.String(50))
+    postcode = db.Column(db.String(20))
+    country = db.Column(db.String(50))
+
+    # relationships
+    orders = db.relationship('Order', back_populates='user', lazy='dynamic')
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    @property
+    def is_member(self):
+        return bool(self.membership_number)  # Just checks existence
+
+    @property
+    def is_admin(self):
+        return self.role in ['admin', 'superadmin']
+
+    @property
+    def is_superadmin(self):
+        return self.role == 'superadmin'
+
+
 class Brand(db.Model):
-    """Radio manufacturers"""
     __tablename__ = 'Brand'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)  # "Philips"
@@ -38,6 +79,8 @@ class Location(db.Model):
     __tablename__ = 'Location'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True)
+    city = db.Column(db.String(50))
+    details = db.Column(db.String(200))
     librarian_email = db.Column(db.String(120))
     address = db.Column(db.String(120))
 
@@ -54,8 +97,9 @@ class Part(db.Model):
     description = db.Column(db.String(1024))
     part_number = db.Column(db.String(30))
     quantity = db.Column(db.Integer, default=1)
-    box = db.Column(db.String(20))            # "Box 3A"
-    position = db.Column(db.String(50))       # "Bottom shelf"
+    price_member = db.Column(db.Float)  # Price for members
+    price_non_member = db.Column(db.Float)  # Price for non-members
+    storage_details = db.Column(db.String(200))  # Storage details
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     brand_id = db.Column(db.Integer, db.ForeignKey('Brand.id'))
     location_id = db.Column(db.Integer, db.ForeignKey('Location.id'))
@@ -67,6 +111,12 @@ class Part(db.Model):
     images = db.relationship('Image', back_populates='part', cascade='all, delete-orphan')
     tags = db.relationship('Tag', secondary=part_tags, back_populates='parts')
     part_type = db.relationship('PartType')
+
+    def get_price(self, user=None):
+        """Return appropriate price based on user status"""
+        if user and hasattr(user, 'is_member') and user.is_member:
+            return self.price_member
+        return self.price_non_member
 
 
 class PartType(db.Model):
@@ -83,7 +133,7 @@ class PartType(db.Model):
         super().__init__(**kwargs)
         if not self.slug:
             self.slug = slugify(self.name)
-    
+
 
 class PartRequest(db.Model):
     __tablename__ = 'PartRequest'
@@ -92,6 +142,34 @@ class PartRequest(db.Model):
     requester_email = db.Column(db.String(120))
     notes = db.Column(db.String(1024))                # "Need for 1947 Philips restoration"
     status = db.Column(db.String(20))         # "Pending", "Fulfilled"
+
+
+class Order(db.Model):
+    __tablename__ = 'Order'
+    id = db.Column(db.Integer, primary_key=True)
+    order_number = db.Column(db.String(20), unique=True)
+    order_date = db.Column(db.DateTime, default=datetime.now(timezone.utc))
+    status = db.Column(db.String(20), default='pending')  # pending, processing, shipped, completed
+    total_amount = db.Column(db.Float)
+    member_discount = db.Column(db.Float, default=0.0)
+    user_id = db.Column(db.Integer, db.ForeignKey('User.id'))
+
+    # Relationships
+    user = db.relationship('User', back_populates='orders')
+    items = db.relationship('OrderItem', back_populates='order')
+
+
+class OrderItem(db.Model):
+    __tablename__ = 'OrderItem'
+    id = db.Column(db.Integer, primary_key=True)
+    quantity = db.Column(db.Integer, default=1)
+    unit_price = db.Column(db.Float)
+    order_id = db.Column(db.Integer, db.ForeignKey('Order.id'))
+    part_id = db.Column(db.Integer, db.ForeignKey('Part.id'))
+
+    # Relationships
+    order = db.relationship('Order', back_populates='items')
+    part = db.relationship('Part')
 
 
 class Image(db.Model):

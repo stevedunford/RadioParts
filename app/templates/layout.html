@@ -19,37 +19,28 @@
 
     <!-- Art Deco Navigation System -->
     <nav class="art-deco-nav">
-
         <!-- Primary Navigation -->
         <ul class="nav-primary">
             <li><a href="{{ url_for('parts.gallery') }}"><i class="fas fa-images"></i> Gallery</a></li>
-            <li class="has-submenu">
-                <a href="#"><i class="fas fa-tools"></i> Parts <i class="fas fa-chevron-down"></i></a>
-                <ul class="nav-submenu">
-                    <li><a href="{{ url_for('parts.manage_part') }}">Add New Part</a></li>
-                    <li><a href="#">Browse Catalog</a></li>
-                    <li class="divider"></li>
-                    <li><a href="#">Request Part</a></li>
-                </ul>
-            </li>
-            <!-- Future Admin Area (hidden for now) -->
-            <li class="admin-only" style="display: none;">
-                <a href="#"><i class="fas fa-unlock-alt"></i> Admin</a>
-                <ul class="nav-submenu">
-                    <li><a href="#">Manage Users</a></li>
-                    <li><a href="#">Audit Log</a></li>
-                </ul>
-            </li>
+            
+            {% if current_user.is_authenticated %}
+                {% if current_user.is_admin %}
+                <li><a href="{{ url_for('parts.manage_part') }}"><i class="fas fa-plus-circle"></i> Add Part</a></li>
+                <li><a href="{{ url_for('auth.user_list') }}"><i class="fas fa-users-cog"></i> Users</a></li>
+                {% endif %}
+                <li><a href="{{ url_for('auth.profile') }}"><i class="fas fa-user"></i> Profile</a></li>
+                <li><a href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            {% else %}
+                <li><a href="{{ url_for('auth.login') }}"><i class="fas fa-sign-in-alt"></i> Login</a></li>
+                <li><a href="{{ url_for('auth.register') }}"><i class="fas fa-user-plus"></i> Register</a></li>
+            {% endif %}
         </ul>
 
-        <!-- User Controls (placeholder) -->
+        <!-- Theme Toggle -->
         <div class="nav-user">
             <button class="theme-toggle" aria-label="Toggle dark mode">
-                <i class="fas fa-adjust"></i> <!-- Font Awesome icon, adjust as needed -->
+                <i class="fas fa-adjust"></i>
             </button>
-        </div>
-        <div class="nav-user">
-            <a href="#" class="login-prompt"><i class="fas fa-user"></i> Sign In</a>
         </div>
     </nav>
 

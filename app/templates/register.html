@@ -1,0 +1,72 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="art-deco-card">
+    <h2>Become a Member</h2>
+    <form method="POST" action="{{ url_for('auth.register') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="first_name">First Name</label>
+                <input type="text" id="first_name" name="first_name" required>
+            </div>
+            <div class="form-group">
+                <label for="last_name">Last Name</label>
+                <input type="text" id="last_name" name="last_name" required>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="phone">Phone Number</label>
+            <input type="tel" id="phone" name="phone" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="address_line1">Address Line 1</label>
+            <input type="text" id="address_line1" name="address_line1" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="address_line2">Address Line 2</label>
+            <input type="text" id="address_line2" name="address_line2">
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="city">City</label>
+                <input type="text" id="city" name="city" required>
+            </div>
+            <div class="form-group">
+                <label for="postcode">Postcode</label>
+                <input type="text" id="postcode" name="postcode" required>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="country">Country</label>
+            <input type="text" id="country" name="country" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="confirm_password">Confirm Password</label>
+            <input type="password" id="confirm_password" name="confirm_password" required>
+        </div>
+        
+        <div class="form-footer">
+            <button type="submit" class="vintage-button">Register</button>
+            <p>Already a member? <a href="{{ url_for('auth.login') }}">Sign in here</a></p>
+        </div>
+    </form>
+</div>
+{% endblock %}

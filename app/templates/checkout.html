@@ -1,0 +1,39 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="art-deco-card">
+    <h2>Checkout</h2>
+    
+    <form method="POST" action="{{ url_for('orders.checkout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        
+        <div class="form-group">
+            <h3>Shipping Address</h3>
+            <p>{{ current_user.address_line1 }}</p>
+            {% if current_user.address_line2 %}
+            <p>{{ current_user.address_line2 }}</p>
+            {% endif %}
+            <p>{{ current_user.city }}, {{ current_user.postcode }}</p>
+            <p>{{ current_user.country }}</p>
+            <a href="{{ url_for('auth.profile') }}" class="vintage-button small">
+                Update Address
+            </a>
+        </div>
+        
+        <div class="form-group">
+            <h3>Payment Method</h3>
+            <p>Currently we accept bank transfers only</p>
+            <p>Account details will be provided after order confirmation</p>
+        </div>
+        
+        <div class="form-footer">
+            <a href="{{ url_for('orders.cart') }}" class="vintage-button">
+                Back to Cart
+            </a>
+            <button type="submit" class="vintage-button primary">
+                Place Order
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

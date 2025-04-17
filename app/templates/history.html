@@ -1,0 +1,41 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="art-deco-card">
+    <div class="order-confirmation">
+        <h2>Order Confirmation</h2>
+        <p class="order-number">Order #{{ order.order_number }}</p>
+        <p class="order-date">Placed on {{ order.order_date.strftime('%d %b %Y %H:%M') }}</p>
+        
+        <div class="order-status">
+            <p>Status: <span class="status-badge">{{ order.status|capitalize }}</span></p>
+        </div>
+        
+        <div class="order-items">
+            <h3>Your Items</h3>
+            {% for item in order.items %}
+            <div class="order-item">
+                <p>{{ item.quantity }} × {{ item.part.name }} ({{ item.part.part_number }})</p>
+                <p>${{ "%.2f"|format(item.unit_price * item.quantity) }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="order-totals">
+            {% if order.member_discount > 0 %}
+            <p>Member Discount: <span>-${{ "%.2f"|format(order.member_discount) }}</span></p>
+            {% endif %}
+            <p class="total">Total: <span>${{ "%.2f"|format(order.total_amount) }}</span></p>
+        </div>
+        
+        <div class="order-actions">
+            <a href="{{ url_for('orders.history') }}" class="vintage-button">
+                View Order History
+            </a>
+            <a href="{{ url_for('parts.gallery') }}" class="vintage-button">
+                Continue Shopping
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

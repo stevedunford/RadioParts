@@ -5,10 +5,12 @@
     <!-- Header Section -->
     <header class="part-header">
         <div class="title-edit-group">
-            <h1>{{ part.name }}{% if part.part_number %} <span class="part-number">- {{ part.part_number }}</span>{% endif %}</h1>
-            <a href="/parts/{{ part.id }}/edit" class="btn btn-edit">
-                <i class="fas fa-pencil-alt"></i> Edit
-            </a>
+            <h1>{{ part.name }}{% if part.part_number %}<i> ({{ part.part_number }})</i>{% endif %}</h1>
+            {% if current_user.is_authenticated and current_user.is_admin %}
+                <a href="/parts/{{ part.id }}/edit" class="btn btn-edit">
+                    <i class="fas fa-pencil-alt"></i> Edit
+                </a>
+            {% endif %}
         </div>
 
         <!-- Part Description -->
@@ -88,21 +90,71 @@
     <!-- Part Metadata -->
     <section class="part-meta">
         {% if part.location %}
-        <div class="meta-item">
-            <span class="meta-label"><i class="fas fa-map-marker-alt"></i> Location:</span>
-            <span class="meta-value">{{ part.location.name }}</span>
+        <div class="meta-item highlight-price">
+            <span class="meta-label">
+                <i class="fas fa-{% if current_user.is_authenticated and current_user.is_member %}star{% else %}tag{% endif %}"></i> 
+                Price:
+            </span>
+            <span class="meta-value">
+                NZ$ {{ "%.2f"|format(part.get_price(current_user if current_user.is_authenticated else None)) }}
+                {% if current_user.is_authenticated and current_user.is_member %}
+                    <span class="badge bg-success">(NZVRS Member Pricing Only)</span>
+                {% endif %}
+            </span>
         </div>
-        {% endif %}
-        {% if part.box %}
         <div class="meta-item">
-            <span class="meta-label"><i class="fas fa-archive"></i> Box:</span>
-            <span class="meta-value">{{ part.box }}</span>
+            <span class="meta-label"><i class="fas fa-box-open"></i> Stock:</span>
+            <span class="meta-value {% if part.quantity <= 0 %}text-danger{% endif %}">
+                {{ part.quantity }} available
+            </span>
         </div>
-        {% endif %}
-        {% if part.position %}
         <div class="meta-item">
-            <span class="meta-label"><i class="fas fa-layer-group"></i> Position:</span>
-            <span class="meta-value">{{ part.position }}</span>
+            <span class="meta-label">
+                <i class="fas fa-map-marker-alt"></i> Location:
+            </span>
+            <span class="meta-value">
+                {{ part.location.name }}
+                {% if part.location.details %}
+                <span class="tooltip-container">
+                    <i class="fas fa-question-circle tooltip-icon"></i>
+                    <span class="tooltip-text">{{ part.location.details }}</span>
+                </span>
+                {% endif %}
+            </span>
+        </div>
+        <div class="order-actions">
+            {% if part.quantity > 0 %}
+                {% if current_user.is_authenticated %}
+                <form action="{{ url_for('orders.add_to_cart', part_id=part.id) }}" method="POST">
+                    <input type="hidden" name="part_id" value="{{ part.id }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="quantity-selector">
+                        <button type="button" class="qty-btn" onclick="adjustQty(-1)">−</button>
+                        <input type="number" name="quantity" value="1" min="1" max="{{ part.quantity }}" class="qty-input">
+                        <button type="button" class="qty-btn" onclick="adjustQty(1)">+</button>
+                    </div>
+                    <button type="submit" class="btn-order">
+                        <i class="fas fa-shopping-cart"></i> Add to Order
+                    </button>
+                </form>
+                {% else %}
+                <a href="{{ url_for('auth.login') }}?next={{ request.path }}" class="btn-order">
+                    <i class="fas fa-sign-in-alt"></i> Login to Order
+                </a>
+                {% endif %}
+            {% else %}
+                <button class="btn-order disabled" disabled>
+                    <i class="fas fa-times-circle"></i> Out of Stock
+                </button>
+            {% endif %}
+        </div>
+
+        {% endif %}
+        {# Admin-only fields #}
+        {% if current_user.is_admin and part.storage_details %}
+        <div class="meta-item admin-highlight">
+            <span class="meta-label"><i class="fas fa-archive"></i> Storage:</span>
+            <span class="meta-value">{{ part.storage_details }}</span>
         </div>
         {% endif %}
     </section>
@@ -177,5 +229,13 @@
             if (e.key === "ArrowRight") navigateModal(1, {stopPropagation: () => {}});
         }
     });
+
+    function adjustQty(change) {
+        const input = document.querySelector('.qty-input');
+        let newVal = parseInt(input.value) + change;
+        newVal = Math.max(1, Math.min(newVal, {{ part.quantity }}));
+        input.value = newVal;
+    }
+
 </script>
 {% endblock %}

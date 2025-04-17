@@ -1,0 +1,28 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="art-deco-card">
+    <h2>Vintage Radio Parts Login</h2>
+    <form method="POST" action="{{ url_for('auth.login') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="remember"> Remember me
+            </label>
+        </div>
+        
+        <button type="submit" class="vintage-button">Log In</button>
+    </form>
+</div>
+{% endblock %}

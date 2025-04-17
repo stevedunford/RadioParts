@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify
 from flask_wtf.csrf import CSRFError
+from flask_limiter.errors import RateLimitExceeded
 
 
 bp = Blueprint('errors', __name__)
@@ -26,3 +27,11 @@ def handle_csrf_error(e):
         'error': 'CSRF token validation failed',
         'message': str(e.description)
     }), 400
+
+
+@bp.app_errorhandler(RateLimitExceeded)
+def handle_ratelimit_exceeded(e):
+    return jsonify({
+        "error": "Rate limit exceeded",
+        "message": str(e.description)
+    }), 429

@@ -1,4 +1,6 @@
-from flask import current_app
+from flask import abort, current_app
+from flask_login import current_user
+from functools import wraps
 from pathlib import Path
 
 
@@ -26,3 +28,21 @@ def secure_filename_custom(filename):
 def log_error(context, error):
     """Standardized error logging"""
     current_app.logger.error(f"{context} | Error: {str(error)}")
+
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def superadmin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_superadmin:
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function

@@ -3,6 +3,7 @@ from flask import Blueprint, flash, redirect, request, jsonify, current_app, \
 from slugify import slugify
 from werkzeug.utils import secure_filename
 from ..utils import helpers
+from ..utils.helpers import admin_required, superadmin_required
 from ..models import db, Part, Image, PartType, Brand, Location, Tag, part_tags
 from sqlalchemy import func, or_
 from datetime import datetime
@@ -21,20 +22,6 @@ bp = Blueprint('parts', __name__)
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 
-@bp.route('/debug')
-def debug():
-    if current_app.config['BEER_LEVEL'] < 0.5:
-        abort(418)  # I'm a teapot (needs refill)
-    return jsonify({"status": "Brilliant but Hazy"})
-
-
-@bp.route('/commit', methods=['POST'])
-def commit_code():
-    if request.headers.get('X-Beer-Units') < 3:
-        raise InsufficientSobrietyError("Code too coherent")  # type: ignore # NOQA 
-    return "🚀 Deployed with artistic license"
-
-
 @bp.context_processor
 def inject_now():
     return {'current_year': datetime.now().year}
@@ -51,16 +38,16 @@ def gallery():
     # Pagination parameters
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 12, type=int)
-    
+
     # Initialize query with joins for efficient sorting/filtering
     query = Part.query.join(Brand, Part.brand).options(db.joinedload(Part.brand))
-    
+
     # Get all filter parameters
     brand_id = request.args.get('brand', type=int)
     part_type_id = request.args.get('type', type=int)
     search_query = request.args.get('q', '').strip()
     tags = request.args.getlist('tag')
-    
+
     # Initialize filters
     filters = []
     current_filters = {
@@ -68,7 +55,7 @@ def gallery():
         'type': part_type_id,
         'q': search_query if search_query else None
     }
-    
+
     # Apply filters
     if brand_id:
         filters.append(Part.brand_id == brand_id)
@@ -86,7 +73,7 @@ def gallery():
             tag = Tag.query.filter_by(name=tag_name).first()
             if tag:
                 filters.append(Part.tags.contains(tag))
-    
+
     # Default sorting: brand name (asc) then part number (asc)
     sort = request.args.get('sort', 'brand_asc')
     if sort == 'name_asc':
@@ -99,24 +86,24 @@ def gallery():
         query = query.order_by(Part.created_at.asc())
     else:  # Default: brand_asc
         query = query.order_by(Brand.name.asc(), Part.part_number.asc())
-    
+
     # Apply filters to query
     if filters:
         query = query.filter(*filters)
-    
+
     # Get paginated results
     parts = query.paginate(page=page, per_page=per_page, error_out=False)
-    
+
     # Get all brands and part types for filters
     brands = Brand.query.order_by(Brand.name.asc()).all()
     part_types = PartType.query.order_by(PartType.name.asc()).all()
-    
+
     # Get tags with counts
     all_tags = db.session.query(
         Tag.name,
         func.count(part_tags.c.part_id).label('count')
     ).join(part_tags).group_by(Tag.name).order_by(Tag.name.asc()).all()
-    
+
     # Make sure each part has its primary image identified
     for part in parts.items:
         part.primary_image = next((img for img in part.images if img.is_primary), part.images[0] if part.images else None)
@@ -133,15 +120,26 @@ def gallery():
     )
 
 
-@bp.route('/debug_form', methods=['POST'])
-def debug_form():
-    print("Form data received:", request.form.to_dict())
-    print("Files received:", request.files.to_dict())
-    return jsonify(request.form.to_dict())
+@bp.route('/<int:part_id>')
+def view_part(part_id):
+    """Display a single part with all details"""
+    part = Part.query.options(
+        db.joinedload(Part.brand),
+        db.joinedload(Part.part_type),
+        db.joinedload(Part.location),
+        db.joinedload(Part.images),
+        db.joinedload(Part.tags)
+    ).get_or_404(part_id)
+    print('hell yeah')
 
-
+    return render_template('part.html', 
+                           part=part,
+                           current_year=datetime.now().year)
+    
+    
 @bp.route('/add', methods=['GET', 'POST'])
 @bp.route('/<int:part_id>/edit', methods=['GET', 'POST'])
+@admin_required
 def manage_part(part_id=None):
     part = Part.query.get(part_id) if part_id else None
 
@@ -164,8 +162,7 @@ def manage_part(part_id=None):
                 part.brand_id = request.form.get('brand_id')
                 part.part_type_id = request.form.get('part_type_id')
                 part.location_id = request.form.get('location_id')
-                part.box = request.form.get('box')
-                part.position = request.form.get('position')
+                part.storage_details = request.form.get('storage_details')
 
                 # Handle deleted images
                 deleted_images = request.form.get('deleted_images', '').split(',')
@@ -197,8 +194,7 @@ def manage_part(part_id=None):
                     brand_id=request.form.get('brand_id'),
                     part_type_id=request.form.get('part_type_id'),
                     location_id=request.form.get('location_id'),
-                    box=request.form.get('box'),
-                    position=request.form.get('position')
+                    storage_details=request.form.get('storage_details')
                 )
                 print("Adding part to db")
                 db.session.add(part)
@@ -266,6 +262,7 @@ def manage_part(part_id=None):
 
 
 @bp.route('/<int:part_id>/delete', methods=['POST'])
+@admin_required
 def delete_part(part_id):
     part = Part.query.get_or_404(part_id)
     try:
@@ -291,23 +288,6 @@ def delete_part(part_id):
         }), 500
 
 
-@bp.route('/<int:part_id>')
-def view_part(part_id):
-    """Display a single part with all details"""
-    part = Part.query.options(
-        db.joinedload(Part.brand),
-        db.joinedload(Part.part_type),
-        db.joinedload(Part.location),
-        db.joinedload(Part.images),
-        db.joinedload(Part.tags)
-    ).get_or_404(part_id)
-    print('hell yeah')
-
-    return render_template('part.html', 
-                           part=part,
-                           current_year=datetime.now().year)
-
-
 @bp.route('/tags/<string:tag_name>')
 def parts_by_tag(tag_name):
     """Get all parts with a specific tag"""
@@ -316,6 +296,7 @@ def parts_by_tag(tag_name):
 
 
 @bp.route('/upload_images', methods=['POST'])
+@admin_required
 def upload_images():
     print("-- Uploading images --")
     print("Received CSRF Token:", request.headers.get('X-CSRF-Token'))
@@ -404,6 +385,7 @@ def upload_images():
 
 
 @bp.route('/delete_image/<int:image_id>', methods=['DELETE'])
+@admin_required
 def delete_image(image_id):
     image = Image.query.get_or_404(image_id)
     try:
@@ -419,6 +401,7 @@ def delete_image(image_id):
 
 
 @bp.route('/set_primary_image/<int:image_id>', methods=['POST'])
+@admin_required
 def set_primary_image(image_id):
     image = Image.query.get_or_404(image_id)
 
@@ -437,6 +420,7 @@ def set_primary_image(image_id):
 
 
 @bp.route('/update_image_order', methods=['POST'])
+@admin_required
 def update_image_order():
     try:
         order = request.json.get('order', [])
