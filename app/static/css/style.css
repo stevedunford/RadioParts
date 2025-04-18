@@ -846,6 +846,35 @@ h1, h2, h3, h4 {
     max-width: 80%;
 }
 
+/* Brand Modal Styles */
+#brand-modal .modal-content-container {
+    max-width: 500px;
+    padding: 2rem;
+    background: var(--card-bg);
+}
+
+#brand-modal .form-group {
+    margin-bottom: 1.5rem;
+}
+
+#brand-modal label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+#brand-modal input[type="text"],
+#brand-modal input[type="url"],
+#brand-modal textarea {
+    width: 94%;
+    padding: 0.8rem;
+    border: 2px solid var(--semi-light);
+}
+
+#brand-modal #save-brand-btn {
+    margin-top: 1.5rem;
+}
+
 
 /* ====================== */
 /*  SHOPPING CART STYLES  */
@@ -1083,6 +1112,23 @@ h1, h2, h3, h4 {
     background: var(--accent);
     color: white;
     transform: translateY(-2px);
+}
+
+/* Pricing input styling */
+.form-row {
+    display: flex;
+    gap: 1rem;
+}
+
+.form-group {
+    flex: 1;
+}
+
+input[type="number"] {
+    width: 97%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
 }
 
 /* Image Gallery */

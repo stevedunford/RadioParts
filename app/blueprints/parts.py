@@ -161,6 +161,8 @@ def manage_part(part_id=None):
                 part.part_number = request.form.get('part_number')
                 part.brand_id = request.form.get('brand_id')
                 part.part_type_id = request.form.get('part_type_id')
+                part.price_member = float(request.form.get('price_member', 0))
+                part.price_non_member = float(request.form.get('price_non_member', 0))
                 part.location_id = request.form.get('location_id')
                 part.storage_details = request.form.get('storage_details')
 
@@ -193,6 +195,8 @@ def manage_part(part_id=None):
                     part_number=request.form.get('part_number'),
                     brand_id=request.form.get('brand_id'),
                     part_type_id=request.form.get('part_type_id'),
+                    price_member=float(request.form.get('price_member', 0)),
+                    price_non_member=float(request.form.get('price_non_member', 0)),
                     location_id=request.form.get('location_id'),
                     storage_details=request.form.get('storage_details')
                 )
@@ -305,7 +309,7 @@ def upload_images():
     """Handle file uploads with image processing"""
     if 'file' not in request.files:  # Changed from 'files' to 'file'
         return jsonify(error="No files uploaded"), 400
-    
+
     part_id = request.form.get('part_id')
     part = Part.query.get(part_id) if part_id else None
     upload_dir = Path(current_app.config['UPLOAD_FOLDER'])
@@ -319,7 +323,7 @@ def upload_images():
             'message': 'Maximum 8 images allowed',
             'userFriendly': f' Maximum 8 images per part (already has {current_count})'
         }), 400
-   
+
     # Get single file (FilePond sends one at a time)
     file = request.files['file']  # Changed from getlist('files')
     responses = []
@@ -329,22 +333,29 @@ def upload_images():
         try:
             if not allowed_file(file.filename):
                 return jsonify(error="Invalid file type"), 400
-                
+
             filename = secure_filename(file.filename)
             save_path = upload_dir / filename
 
             # Process image
             img = PILImage.open(file.stream)
-            
+            if img.mode not in ['RGB', 'RGBA', 'L', 'P', '1']:  # Allowed modes
+                # 'L' = grayscale, 'P' = palette, '1' = binary
+                return jsonify(error="Unsupported image mode"), 400
+
+            # Convert to RGB if needed (preserves B/W GIFs)
+            if img.mode in ['L', 'P', '1']:
+                img = img.convert('RGB')
+
             # Resize if needed (maintain aspect ratio)
             if img.width > 1200 or img.height > 1200:
                 img.thumbnail((1200, 1200))
-            
+
             # Save with quality compression
             buffer = BytesIO()
             img.save(buffer, format='JPEG', quality=70)
             buffer.seek(0)
-            
+
             # Handle duplicates
             counter = 1
             while save_path.exists():
@@ -433,3 +444,47 @@ def update_image_order():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+
+@bp.route('/add_brand', methods=['POST'])
+@admin_required
+def add_brand():
+    try:
+        data = request.get_json()
+        name = data.get('name').strip()
+
+        if not name:
+            return jsonify({'success': False, 'message': 'Brand name is required'}), 400
+
+        # Check if brand already exists
+        existing_brand = Brand.query.filter(func.lower(Brand.name) == func.lower(name)).first()
+        if existing_brand:
+            return jsonify({
+                'success': False,
+                'message': f'Brand "{name}" already exists'
+            }), 400
+
+        # Create new brand with minimal required fields
+        new_brand = Brand(
+            name=name,
+            website=data.get('website', '').strip(),
+            description=data.get('description', '').strip()
+        )
+
+        db.session.add(new_brand)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'brand': {
+                'id': new_brand.id,
+                'name': new_brand.name
+            }
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500

@@ -67,6 +67,11 @@
         </option>
         {% endfor %}
     </select>
+    <div class="form-group">
+        <button type="button" id="add-brand-btn" class="vintage-button small-button">
+            <span class="button-text">Add New Brand</span>
+        </button>
+    </div>
     
     <label for="part_type">Part Type</label>
     <select name="part_type_id" required>
@@ -78,6 +83,22 @@
         {% endfor %}
     </select>
     
+    <!-- Prices for Members and Joe Public -->
+    <div class="form-row">
+        <div class="form-group">
+            <label for="price_member">Member Price (NZ$)</label>
+            <input type="number" id="price_member" name="price_member" 
+                   step="0.01" min="0" 
+                   value="{{ "%.2f"|format(part.price_member) if part and part.price_member else '' }}">
+        </div>
+        <div class="form-group">
+            <label for="price_non_member">Non-Member Price (NZ$)</label>
+            <input type="number" id="price_non_member" name="price_non_member"
+                   step="0.01" min="0"
+                   value="{{ "%.2f"|format(part.price_non_member) if part and part.price_non_member else '' }}">
+        </div>
+    </div>
+
     <!-- Location Selector -->
     <label for="location">Library Location</label>
     <select name="location_id" id="location_id" required>
@@ -158,6 +179,33 @@
         </button>
         {% endif %}
     </div>
+
+    <!-- Add new brand modal -->
+    <div id="brand-modal" class="art-deco-modal" style="display: none;">
+        <div class="modal-content-container">
+            <span class="close">&times;</span>
+            <h3>Add New Brand</h3>
+            
+            <div class="form-group">
+                <label for="new-brand-name">Brand Name*</label>
+                <input type="text" id="new-brand-name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="new-brand-description">Description</label>
+                <textarea id="new-brand-description"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="new-brand-website">Website</label>
+                <input type="url" id="new-brand-website">
+            </div>
+            
+            <button type="button" id="save-brand-btn" class="vintage-button">
+                <span class="button-text">Save Brand</span>
+            </button>
+        </div>
+    </div>
 </form>
 
 {% block scripts %}
@@ -196,6 +244,14 @@ document.addEventListener('DOMContentLoaded', function() {
         maxFiles: 8,
         maxFileSize: '16MB',
         acceptedFileTypes: ['image/*'],
+        fileValidateTypeDetectType: (source, type) => 
+            new Promise((resolve) => {
+                // Simple check - just verify it's an image
+                const img = new Image();
+                img.onload = () => resolve(type);
+                img.onerror = () => resolve(undefined);
+                img.src = URL.createObjectURL(source);
+            }),
         allowMultiple: true,
         allowProcess: true,
         instantUpload: true,

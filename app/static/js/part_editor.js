@@ -66,6 +66,81 @@ function initImageSorting() {
     });
 }
 
+// Brand Management Functions
+function initBrandManagement() {
+    const addBrandBtn = document.getElementById('add-brand-btn');
+    const brandModal = document.getElementById('brand-modal');
+    const closeModal = brandModal.querySelector('.close');
+    const saveBrandBtn = document.getElementById('save-brand-btn');
+    
+    if (!addBrandBtn) return;
+    
+    // Open modal
+    addBrandBtn.addEventListener('click', () => {
+        brandModal.style.display = 'block';
+    });
+    
+    // Close modal
+    closeModal.addEventListener('click', () => {
+        brandModal.style.display = 'none';
+    });
+    
+    // Save new brand
+    saveBrandBtn.addEventListener('click', async () => {
+        const name = document.getElementById('new-brand-name').value.trim();
+        const website = document.getElementById('new-brand-website').value.trim();
+        const description = document.getElementById('new-brand-description').value.trim();
+        
+        if (!name) {
+            showAlert('Brand name is required', 'error');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/parts/add_brand', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': document.querySelector('[name="csrf_token"]').value
+                },
+                body: JSON.stringify({
+                    name,
+                    website,
+                    description
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Add new brand to dropdown
+                const brandSelect = document.querySelector('select[name="brand_id"]');
+                const newOption = document.createElement('option');
+                newOption.value = result.brand.id;
+                newOption.textContent = result.brand.name;
+                brandSelect.appendChild(newOption);
+                
+                // Select the new brand
+                newOption.selected = true;
+                
+                // Close modal and clear fields
+                brandModal.style.display = 'none';
+                document.getElementById('new-brand-name').value = '';
+                document.getElementById('new-brand-website').value = '';
+                document.getElementById('new-brand-description').value = '';
+                
+                showAlert('Brand added successfully', 'success');
+            } else {
+                throw new Error(result.message || 'Failed to add brand');
+            }
+        } catch (error) {
+            showAlert(error.message, 'error');
+            console.error('Error adding brand:', error);
+        }
+    });
+}
+
+
 // Set primary image for part
 async function setAsPrimary(e) {
     e.preventDefault();
@@ -105,6 +180,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.set-primary').forEach(btn => {
         btn.addEventListener('click', setAsPrimary);
     });
+
+    // Add new brand popup
+    initBrandManagement();
     
     document.addEventListener('click', function(e) {
         // Check if click came from a delete button or its × child
@@ -349,6 +427,28 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
 
+        const priceMember = parseFloat(document.getElementById('price_member').value);
+        const priceNonMember = parseFloat(document.getElementById('price_non_member').value);
+        
+        // Validate pricing
+        if (isNaN(priceMember) || isNaN(priceNonMember)) {
+            showAlert('Please enter valid prices for both member and non-member', 'error');
+            e.preventDefault();
+            return;
+        }
+        
+        if (priceMember < 0 || priceNonMember < 0) {
+            showAlert('Prices cannot be negative', 'error');
+            e.preventDefault();
+            return;
+        }
+        
+        if (priceMember > priceNonMember) {
+            showAlert('Member price must be less than non-member price', 'error');
+            e.preventDefault();
+            return;
+        }
+
         try {
             const submitBtn = form.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
@@ -415,8 +515,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Delete button handler
     deleteButton = document.getElementById('delete-part');
-    console.log(deleteButton);
-    if (window.partEditMode) {
+    if (window.partEditMode) { // add mode doesn't need delete, just edit mode
         deleteButton?.addEventListener('click', async function() {
             if (confirm('Permanently delete this part and all its images?')) {
                 try {
@@ -443,8 +542,5 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
-    } else {
-        deleteButton.textContent = 'Cancel';
-        deleteButton.onclick = () => { window.location.href = '/parts'; };
     }
 });

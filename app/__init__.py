@@ -20,10 +20,13 @@ def create_app():
         frame_options='SAMEORIGIN',
         content_security_policy={
             'default-src': "'self'",
+            'worker-src': [
+                "'self'",
+                'blob:'  # Required for FilePond's web workers
+            ],
             'script-src': [
                 "'self'",
                 "'unsafe-inline'",  # Required for theme toggle and inline handlers
-                "'unsafe-eval'",    # Only include if using eval()
                 'https://cdnjs.cloudflare.com',  # If using external JS libraries
                 'https://cdn.jsdelivr.net',  # SortableJS
                 'https://unpkg.com'  # FilePond
