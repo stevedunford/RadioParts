@@ -1,0 +1,378 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="admin-container">
+    <h1>User Management</h1>
+    
+    <div class="search-controls">
+        <form class="search-box" action="{{ url_for('auth.user_list') }}" method="GET">
+            <input type="text" id="user-search" name="q" placeholder="Search users..." 
+                   value="{{ request.args.get('q', '') }}"
+                   aria-label="Search users">
+            <button type="submit" class="search-button">
+                <i class="fas fa-search"></i>
+            </button>
+            {% if request.args.get('q') %}
+            <a href="{{ url_for('auth.user_list') }}" class="clear-button" title="Clear search">
+                <i class="fas fa-times"></i>
+            </a>
+            {% endif %}
+        </form>
+        
+        <!-- Role Filter -->
+        <div class="filter-control">
+            <select id="role-filter" class="vintage-select">
+                <option value="">All Roles</option>
+                <option value="superadmin">Super Admin</option>
+                <option value="admin">Admin</option>
+                <option value="member">Members</option>
+                <option value="user">Regular Users</option>
+            </select>
+        </div>
+        
+        <!-- Status Filter -->
+        <div class="filter-control">
+            <select id="status-filter" class="vintage-select">
+                <option value="">All Statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+            </select>
+        </div>
+    </div>
+    
+    <!-- User Groups -->
+    <div class="user-groups">
+        <!-- Super Admins -->
+        <div class="user-group" data-role="superadmin">
+            <h2 class="group-header">
+                <i class="fas fa-shield-alt"></i> Super Administrators
+                <span class="badge">{{ counts.superadmin }}</span>
+            </h2>
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Member #</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users if user.role == 'superadmin' %}
+                    <tr data-role="{{ user.role }}" data-status="{% if user.active %}active{% else %}inactive{% endif %}">
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.first_name }} {{ user.last_name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.membership_number }}</td>
+                        <td>
+                            <form class="toggle-active-form" method="POST" action="{{ url_for('auth.toggle_user_status', user_id=user.id) }}">
+                                <button type="submit" class="status-toggle {% if user.active %}active{% else %}inactive{% endif %}">
+                                    {% if user.active %}Active{% else %}Inactive{% endif %}
+                                </button>
+                            </form>
+                        </td>
+                        <td class="actions">
+                            <a href="{{ url_for('auth.user_detail', user_id=user.id) }}" 
+                               class="btn-edit" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            {% if user.id != current_user.id %}
+                            <form action="{{ url_for('auth.delete_user', user_id=user.id) }}" 
+                                  method="POST" class="inline-form"
+                                  onsubmit="return confirm('Permanently delete this user?');">
+                                <button type="submit" class="btn-delete" title="Delete" style="margin: 0.2rem;">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr class="empty-state">
+                        <td colspan="6" class="text-center">
+                            <div class="empty-message">
+                                <i class="fas fa-user-slash vintage-icon-large"></i>
+                                <h3>No super administrators found</h3>
+                                <p>Adjust your filters or create new users</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Admins -->
+        <div class="user-group" data-role="admin">
+            <h2 class="group-header">
+                <i class="fas fa-user-shield"></i> Administrators
+                <span class="badge">{{ counts.admin }}</span>
+            </h2>
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Member #</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users if user.role == 'admin' %}
+                    <tr data-role="{{ user.role }}" data-status="{% if user.active %}active{% else %}inactive{% endif %}">
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.first_name }} {{ user.last_name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.membership_number }}</td>
+                        <td>
+                            <form class="toggle-active-form" method="POST" action="{{ url_for('auth.toggle_user_status', user_id=user.id) }}">
+                                <button type="submit" class="status-toggle {% if user.active %}active{% else %}inactive{% endif %}">
+                                    {% if user.active %}Active{% else %}Inactive{% endif %}
+                                </button>
+                            </form>
+                        </td>
+                        <td class="actions">
+                            <a href="{{ url_for('auth.user_detail', user_id=user.id) }}" 
+                               class="btn-edit" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            {% if user.id != current_user.id %}
+                            <form action="{{ url_for('auth.delete_user', user_id=user.id) }}" 
+                                  method="POST" class="inline-form"
+                                  onsubmit="return confirm('Permanently delete this user?');">
+                                <button type="submit" class="btn-delete" title="Delete" style="margin: 0.2rem;">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr class="empty-state">
+                        <td colspan="6" class="text-center">
+                            <div class="empty-message">
+                                <i class="fas fa-user-slash vintage-icon-large"></i>
+                                <h3>No administrators found</h3>
+                                <p>Adjust your filters or create new users</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Members -->
+        <div class="user-group" data-role="member">
+            <h2 class="group-header">
+                <i class="fas fa-id-card"></i> Members
+                <span class="badge">{{ counts.member }}</span>
+            </h2>
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Member #</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users if user.is_member and user.role not in ['superadmin', 'admin'] %}
+                    <tr data-role="{{ user.role }}" data-status="{% if user.active %}active{% else %}inactive{% endif %}">
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.first_name }} {{ user.last_name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.membership_number }}</td>
+                        <td>
+                            <form class="toggle-active-form" method="POST" action="{{ url_for('auth.toggle_user_status', user_id=user.id) }}">
+                                <button type="submit" class="status-toggle {% if user.active %}active{% else %}inactive{% endif %}">
+                                    {% if user.active %}Active{% else %}Inactive{% endif %}
+                                </button>
+                            </form>
+                        </td>
+                        <td class="actions">
+                            <a href="{{ url_for('auth.user_detail', user_id=user.id) }}" 
+                               class="btn-edit" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            {% if user.id != current_user.id %}
+                            <form action="{{ url_for('auth.delete_user', user_id=user.id) }}" 
+                                  method="POST" class="inline-form"
+                                  onsubmit="return confirm('Permanently delete this user?');">
+                                <button type="submit" class="btn-delete" title="Delete" style="margin: 0.2rem;">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Regular Users -->
+        <div class="user-group" data-role="user">
+            <h2 class="group-header">
+                <i class="fas fa-user"></i> Regular Users
+                <span class="badge">{{ counts.user }}</span>
+            </h2>
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users if not user.is_member and user.role == 'user' %}
+                    <tr data-role="{{ user.role }}" data-status="{% if user.active %}active{% else %}inactive{% endif %}">
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.first_name }} {{ user.last_name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            <form class="toggle-active-form" method="POST" action="{{ url_for('auth.toggle_user_status', user_id=user.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <button type="submit" class="status-toggle {% if user.active %}active{% else %}inactive{% endif %}">
+                                    {% if user.active %}Active{% else %}Inactive{% endif %}
+                                </button>
+                            </form>
+                        </td>
+                        <td class="actions">
+                            <a href="{{ url_for('auth.user_detail', user_id=user.id) }}" 
+                               class="btn-edit" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            {% if user.id != current_user.id %}
+                            <form action="{{ url_for('auth.delete_user', user_id=user.id) }}"
+                                method="POST" class="inline-form"
+                                onsubmit="return confirm('Permanently delete this user?');">
+                                <button type="submit" class="btn-delete" title="Delete" style="margin: 0.2rem;">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Search functionality
+    const searchInput = document.getElementById('user-search');
+    const roleFilter = document.getElementById('role-filter');
+    const statusFilter = document.getElementById('status-filter');
+    
+    // Function to update counts
+    function updateCounts() {
+        document.querySelectorAll('.user-group').forEach(group => {
+            const visibleRows = group.querySelectorAll('tbody tr:not(.empty-state)[style=""], tbody tr:not(.empty-state):not([style])').length;
+            const badge = group.querySelector('.badge');
+            if (badge) {
+                badge.textContent = visibleRows;
+            }
+        });
+    }
+    
+    // Function to filter users
+    function filterUsers() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedRole = roleFilter.value;
+        const selectedStatus = statusFilter.value;
+        
+        document.querySelectorAll('.user-group').forEach(group => {
+            let anyVisibleInGroup = false;
+            const groupRole = group.dataset.role;
+            
+            // Check if group should be visible based on role filter
+            const groupVisible = !selectedRole || groupRole === selectedRole;
+            group.style.display = groupVisible ? '' : 'none';
+            
+            if (groupVisible) {
+                group.querySelectorAll('tbody tr:not(.empty-state)').forEach(row => {
+                    const rowText = row.textContent.toLowerCase();
+                    const rowRole = row.dataset.role;
+                    const rowStatus = row.dataset.status;
+                    
+                    // Check all filter conditions
+                    const textMatch = !searchTerm || rowText.includes(searchTerm);
+                    const roleMatch = !selectedRole || rowRole === selectedRole;
+                    const statusMatch = !selectedStatus || rowStatus === selectedStatus;
+                    
+                    const isVisible = textMatch && roleMatch && statusMatch;
+                    row.style.display = isVisible ? '' : 'none';
+                    
+                    if (isVisible) anyVisibleInGroup = true;
+                });
+                
+                // Show/hide empty state for this group
+                const emptyState = group.querySelector('.empty-state');
+                if (emptyState) {
+                    emptyState.style.display = anyVisibleInGroup ? 'none' : '';
+                }
+            }
+        });
+        
+        updateCounts();
+    }
+    
+    // Initialize counts on page load
+    function initializeCounts() {
+        document.querySelectorAll('.user-group').forEach(group => {
+            const visibleRows = group.querySelectorAll('tbody tr:not(.empty-state)').length;
+            const badge = group.querySelector('.badge');
+            if (badge) {
+                badge.textContent = visibleRows;
+            }
+        });
+    }
+    
+    // Event listeners
+    searchInput.addEventListener('input', filterUsers);
+    roleFilter.addEventListener('change', filterUsers);
+    statusFilter.addEventListener('change', filterUsers);
+    
+    // Clear search button
+    const clearButton = document.querySelector('.clear-button');
+    if (clearButton) {
+        clearButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            searchInput.value = '';
+            filterUsers();
+        });
+    }
+    
+    // Toggle active status with confirmation
+    document.querySelectorAll('.toggle-active-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const button = this.querySelector('.status-toggle');
+            const newStatus = button.classList.contains('active') ? 'Deactivate' : 'Activate';
+            
+            if (confirm(`${newStatus} this user?`)) {
+                this.submit();
+            }
+        });
+    });
+    
+    // Initialize everything
+    initializeCounts();
+    filterUsers(); // This ensures all filters are applied correctly on load
+});
+</script>
+{% endblock %}

@@ -21,8 +21,8 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
     role = db.Column(db.String(20), default='user')  # 'user', 'admin', 'superadmin'
-    active = db.Column(db.Boolean, default=True)
     membership_number = db.Column(db.Integer, unique=True)
+    membership_active = db.Column(db.Boolean, default=True)
     last_login = db.Column(db.DateTime)
     first_name = db.Column(db.String(50))
     last_name = db.Column(db.String(50))
@@ -44,7 +44,7 @@ class User(UserMixin, db.Model):
 
     @property
     def is_member(self):
-        return bool(self.membership_number)  # Just checks existence
+        return self.membership_active and bool(self.membership_number)
 
     @property
     def is_admin(self):

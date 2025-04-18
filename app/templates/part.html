@@ -8,7 +8,7 @@
             <h1>{{ part.name }}{% if part.part_number %}<i> ({{ part.part_number }})</i>{% endif %}</h1>
             {% if current_user.is_authenticated and current_user.is_admin %}
                 <a href="/parts/{{ part.id }}/edit" class="btn btn-edit">
-                    <i class="fas fa-pencil-alt"></i> Edit
+                    <i class="fas fa-pencil-alt"></i>
                 </a>
             {% endif %}
         </div>

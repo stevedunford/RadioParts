@@ -464,9 +464,10 @@ def add_brand():
                 'message': f'Brand "{name}" already exists'
             }), 400
 
-        # Create new brand with minimal required fields
+        # Create new brand with slug
         new_brand = Brand(
             name=name,
+            alias=slugify(name),  # This will automatically generate the slug
             website=data.get('website', '').strip(),
             description=data.get('description', '').strip()
         )
@@ -478,7 +479,8 @@ def add_brand():
             'success': True,
             'brand': {
                 'id': new_brand.id,
-                'name': new_brand.name
+                'name': new_brand.name,
+                'alias': new_brand.alias  # Return the slug if needed
             }
         })
 

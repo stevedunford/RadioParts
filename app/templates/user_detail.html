@@ -1,0 +1,97 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="admin-container">
+    <h1>Manage User: {{ user.email }}</h1>
+    
+    <div class="user-detail-grid">
+        <div class="user-profile-section">
+            <h2>Profile Information</h2>
+            <form method="POST">
+                <input type="hidden" name="action" value="update_profile">
+                
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" value="{{ user.email }}" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>First Name</label>
+                        <input type="text" name="first_name" value="{{ user.first_name or '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Last Name</label>
+                        <input type="text" name="last_name" value="{{ user.last_name or '' }}">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" name="phone" value="{{ user.phone or '' }}">
+                </div>
+                
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="active" name="active" {% if user.active %}checked{% endif %}>
+                    <label for="active">Account Active</label>
+                </div>
+                
+                <button type="submit" class="vintage-button">Update Profile</button>
+            </form>
+        </div>
+        
+        <div class="user-security-section">
+            <h2>Account Security</h2>
+            
+            <div class="security-card">
+                <h3>Change Role</h3>
+                <form method="POST">
+                    <input type="hidden" name="action" value="change_role">
+                    
+                    <div class="form-group">
+                        <select name="role" class="role-select">
+                            <option value="user" {% if user.role == 'user' %}selected{% endif %}>Regular User</option>
+                            <option value="member" {% if user.role == 'member' %}selected{% endif %}>Member</option>
+                            <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                            <option value="superadmin" {% if user.role == 'superadmin' %}selected{% endif %}>SuperAdmin</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="vintage-button small-button">Change Role</button>
+                </form>
+            </div>
+            
+            <div class="security-card">
+                <h3>Reset Password</h3>
+                <form method="POST">
+                    <input type="hidden" name="action" value="reset_password">
+                    
+                    <div class="form-group">
+                        <label>New Password</label>
+                        <input type="password" name="new_password" required minlength="8">
+                    </div>
+                    
+                    <button type="submit" class="vintage-button small-button">Reset Password</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="user-meta-section">
+            <h2>Account Information</h2>
+            <div class="meta-card">
+                <p><strong>Member Since:</strong> {{ user.last_login.strftime('%Y-%m-%d') if user.last_login else 'Never logged in' }}</p>
+                <p><strong>Last Login:</strong> {{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else 'Never' }}</p>
+                {% if user.is_member %}
+                <p><strong>Membership #:</strong> {{ user.membership_number }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="admin-actions">
+        <a href="{{ url_for('auth.user_list') }}" class="vintage-button">
+            <i class="fas fa-arrow-left"></i> Back to User List
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -58,19 +58,21 @@
     </textarea>
   
     <!-- Pre-populated Dropdowns -->
-    <label for="brand">Brand</label>
-    <select name="brand_id">
-        <option value="">Select Brand</option>
-        {% for brand in brands %}
-        <option value="{{ brand.id }}" {% if part and part.brand_id == brand.id %}selected{% endif %}>
-            {{ brand.name }}
-        </option>
-        {% endfor %}
-    </select>
     <div class="form-group">
-        <button type="button" id="add-brand-btn" class="vintage-button small-button">
-            <span class="button-text">Add New Brand</span>
-        </button>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 0.5rem;">
+            <label for="brand" style="margin-bottom: 0;">Brand</label>
+            <button type="button" id="add-brand-btn" class="tag available-tag" style="margin: 0;">
+                <span class="add-tag">+</span> Add New Brand
+            </button>
+        </div>
+        <select name="brand_id" id="brand">
+            <option value="">Select Brand</option>
+            {% for brand in brands %}
+            <option value="{{ brand.id }}" {% if part and part.brand_id == brand.id %}selected{% endif %}>
+                {{ brand.name }}
+            </option>
+            {% endfor %}
+        </select>
     </div>
     
     <label for="part_type">Part Type</label>
