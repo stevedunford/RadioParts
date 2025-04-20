@@ -1770,6 +1770,7 @@ input[type="number"] {
 }
 
 .btn-delete {
+    margin: 0.2rem;
     background: var(--error);
     color: white;
 }

@@ -1,2 +1,10 @@
 *__pycache__*
 *.pyc
+
+# Environment files
+.env
+.env.*
+
+# Config files
+config.py
+*/config.py

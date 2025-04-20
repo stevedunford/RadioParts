@@ -61,15 +61,15 @@
                 </thead>
                 <tbody>
                     {% for user in users if user.role == 'superadmin' %}
-                    <tr data-role="{{ user.role }}" data-status="{% if user.active %}active{% else %}inactive{% endif %}">
+                    <tr data-role="{{ user.role }}" data-status="{% if user.account_active %}active{% else %}inactive{% endif %}">
                         <td>{{ user.username }}</td>
                         <td>{{ user.first_name }} {{ user.last_name }}</td>
                         <td>{{ user.email }}</td>
                         <td>{{ user.membership_number }}</td>
                         <td>
                             <form class="toggle-active-form" method="POST" action="{{ url_for('auth.toggle_user_status', user_id=user.id) }}">
-                                <button type="submit" class="status-toggle {% if user.active %}active{% else %}inactive{% endif %}">
-                                    {% if user.active %}Active{% else %}Inactive{% endif %}
+                                <button type="submit" class="status-toggle {% if user.account_active %}active{% else %}inactive{% endif %}">
+                                    {% if user.account_active %}Active{% else %}Inactive{% endif %}
                                 </button>
                             </form>
                         </td>
@@ -130,8 +130,8 @@
                         <td>{{ user.membership_number }}</td>
                         <td>
                             <form class="toggle-active-form" method="POST" action="{{ url_for('auth.toggle_user_status', user_id=user.id) }}">
-                                <button type="submit" class="status-toggle {% if user.active %}active{% else %}inactive{% endif %}">
-                                    {% if user.active %}Active{% else %}Inactive{% endif %}
+                                <button type="submit" class="status-toggle {% if user.account_active %}active{% else %}inactive{% endif %}">
+                                    {% if user.account_active %}Active{% else %}Inactive{% endif %}
                                 </button>
                             </form>
                         </td>
@@ -192,8 +192,8 @@
                         <td>{{ user.membership_number }}</td>
                         <td>
                             <form class="toggle-active-form" method="POST" action="{{ url_for('auth.toggle_user_status', user_id=user.id) }}">
-                                <button type="submit" class="status-toggle {% if user.active %}active{% else %}inactive{% endif %}">
-                                    {% if user.active %}Active{% else %}Inactive{% endif %}
+                                <button type="submit" class="status-toggle {% if user.account_active %}active{% else %}inactive{% endif %}">
+                                    {% if user.account_active %}Active{% else %}Inactive{% endif %}
                                 </button>
                             </form>
                         </td>
@@ -236,15 +236,15 @@
                 </thead>
                 <tbody>
                     {% for user in users if not user.is_member and user.role == 'user' %}
-                    <tr data-role="{{ user.role }}" data-status="{% if user.active %}active{% else %}inactive{% endif %}">
+                    <tr data-role="{{ user.role }}" data-status="{% if user.account_active %}active{% else %}inactive{% endif %}">
                         <td>{{ user.username }}</td>
                         <td>{{ user.first_name }} {{ user.last_name }}</td>
                         <td>{{ user.email }}</td>
                         <td>
                             <form class="toggle-active-form" method="POST" action="{{ url_for('auth.toggle_user_status', user_id=user.id) }}">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                <button type="submit" class="status-toggle {% if user.active %}active{% else %}inactive{% endif %}">
-                                    {% if user.active %}Active{% else %}Inactive{% endif %}
+                                <button type="submit" class="status-toggle {% if user.account_active %}active{% else %}inactive{% endif %}">
+                                    {% if user.account_active %}Active{% else %}Inactive{% endif %}
                                 </button>
                             </form>
                         </td>

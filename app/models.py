@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from slugify import slugify  # Requires python-slugify package
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
+from flask_mail import Message
 
 db = SQLAlchemy()
 
@@ -32,6 +33,7 @@ class User(UserMixin, db.Model):
     city = db.Column(db.String(50))
     postcode = db.Column(db.String(20))
     country = db.Column(db.String(50))
+    account_active = db.Column(db.Boolean, default=False)
 
     # relationships
     orders = db.relationship('Order', back_populates='user', lazy='dynamic')
@@ -41,6 +43,10 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    @property
+    def is_active(self):
+        return bool(self.account_active)
 
     @property
     def is_member(self):

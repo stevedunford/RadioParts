@@ -28,8 +28,9 @@ def login():
             flash('Invalid username or password')
             return redirect(url_for('auth.login'))
 
-        if not user.active:
-            flash('Account disabled')
+        # Updated check using account_active
+        if not user.account_active:
+            flash('Account is inactive. Please contact an administrator.')
             return redirect(url_for('auth.login'))
 
         login_user(user, remember=remember)
@@ -152,9 +153,9 @@ def register():
         seq_num = int(last_member.membership_number[-4:]) + 1 if last_member else 1
         membership_number = f'VRP{today}{seq_num:04d}'
 
-        # Create user
+        # Create user - set account_active=False by default
         user = User(
-            username=email,  # Using email as username
+            username=email,
             email=email,
             role='member',
             membership_number=membership_number,
@@ -165,14 +166,36 @@ def register():
             address_line2=request.form.get('address_line2'),
             city=request.form.get('city'),
             postcode=request.form.get('postcode'),
-            country=request.form.get('country')
+            country=request.form.get('country'),
+            account_active=False  # New accounts inactive by default
         )
         user.set_password(password)
 
         db.session.add(user)
         db.session.commit()
 
-        flash(f'Registration successful! Your membership number is {membership_number}', 'success')
+        # Email admins for approval
+        admins = User.query.filter(User.role.in_(['admin', 'superadmin'])).all()
+        if admins:
+            admin_emails = [admin.email for admin in admins]
+            msg = Message(
+                "New User Registration Requires Approval",
+                recipients=admin_emails,
+                sender="noreply@vintageradioparts.com"
+            )
+            msg.body = f"""
+            A new user has registered and requires approval:
+            
+            Name: {user.first_name} {user.last_name}
+            Email: {user.email}
+            Membership #: {user.membership_number}
+            
+            Please review and activate their account at:
+            {url_for('auth.user_detail', user_id=user.id, _external=True)}
+            """
+            mail.send(msg)
+
+        flash('Registration submitted! An administrator will review your application and activate your account.', 'success')
         return redirect(url_for('auth.login'))
 
     return render_template('register.html')
@@ -245,8 +268,8 @@ def toggle_user_status(user_id):
     if not current_user.is_superadmin:
         abort(403)
     user = User.query.get_or_404(user_id)
-    user.active = not user.active
+    user.account_active = not user.account_active
     db.session.commit()
 
-    flash(f'User {user.email} has been {"activated" if user.active else "deactivated"}', 'success')
+    flash(f'User {user.email} has been {"activated" if user.account_active else "deactivated"}', 'success')
     return redirect(url_for('auth.user_list'))

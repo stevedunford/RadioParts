@@ -2,6 +2,7 @@ from datetime import timedelta
 from flask import Flask, jsonify, session, request
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
+from flask_mail import Mail
 from .utils import helpers
 from .models import db, User
 from flask_limiter import Limiter
@@ -76,10 +77,20 @@ def create_app():
         SESSION_COOKIE_SECURE=True,
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE='Lax',
-        PERMANENT_SESSION_LIFETIME=timedelta(hours=12)
+        PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
+        
+        # Mail configuration
+        MAIL_SERVER='smtp.your-email-provider.com',  # e.g., 'smtp.gmail.com'
+        MAIL_PORT=587,
+        MAIL_USE_TLS=True,
+        MAIL_USERNAME='your-email@example.com',
+        MAIL_PASSWORD='your-email-password',
+        MAIL_DEFAULT_SENDER='noreply@vintageradioparts.com',
+        MAIL_DEBUG=False
     )
 
     # Initialize extensions
+    mail = Mail(app)
     csrf = CSRFProtect(app)
     db.init_app(app)
 
@@ -107,6 +118,8 @@ def create_app():
     login_manager.login_view = 'auth.login'
     login_manager.init_app(app)
 
+    app.mail = mail
+    
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
