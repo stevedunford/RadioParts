@@ -1,0 +1,180 @@
+Hi DS (Can I call you that?  My initials are SD so it seems only right).  We've been peer-coding together on a Flask project (You, a senior software developer and Flask / Javascript specialist and me, a junior programmer who can get you coffee or beer when you need it! 😂) to show a catalogue of vintage radio parts that people can order.  So far it's not looking too bad, but there are some new features we'll add, and some issues to solve -  First, on the user list page for superadmins, I'd like to group users by role - Superadmins at the top, then admins, then users, separated into members and non members... And the advanced filtering (similar to that on the gallery page) would be great.  And I'd also like to be able to deactivate / activate accounts directly on the list page without having to go to edit.  I've added some other useful files so you can get a feel for what we have, and here is the file tree: 
+C:.
+│   .gitignore
+│   LICENSE
+│   radioparts.py
+│   __init__.py
+│
+├───app
+│   │   models.py
+│   │   __init__.py
+│   │
+│   ├───blueprints
+│   │   │   auth.py
+│   │   │   errors.py
+│   │   │   main.py
+│   │   │   orders.py
+│   │   │   parts.py
+│   │   │   requests.py
+│   │   │   static_pages
+│   │   │   tags.py
+│   │   │   __init__.py
+│   │   │
+│   │   └───__pycache__
+│   │           auth.cpython-311.pyc
+│   │           errors.cpython-311.pyc
+│   │           main.cpython-311.pyc
+│   │           orders.cpython-311.pyc
+│   │           parts.cpython-311.pyc
+│   │           tags.cpython-311.pyc
+│   │           __init__.cpython-311.pyc
+│   │
+│   ├───static
+│   │   ├───css
+│   │   │       favicon.ico
+│   │   │       style.css
+│   │   │       style_old.css
+│   │   │
+│   │   ├───images
+│   │   │       1934-05-01_EVENING_STAR_ISSUE_21708_1_MAY_1934.gif
+│   │   │       1934-05-04_EVENING_STAR_ISSUE_21711_4_MAY_1934_Custom.jpg
+│   │   │       1934-05-04_EVENING_STAR_ISSUE_21711_4_MAY_1934_Custom_1.jpg
+│   │   │       1ZB_Premises_1947.jpg
+│   │   │       20250408_095344-EDIT.jpg
+│   │   │       20250408_095344.jpg
+│   │   │       20250408_095355.jpg
+│   │   │       20250408_095413-EDIT.jpg
+│   │   │       20250408_095413.jpg
+│   │   │       20250408_095425.jpg
+│   │   │       20250408_095441-EDIT.jpg
+│   │   │       20250408_095441.jpg
+│   │   │       20250408_095449.jpg
+│   │   │       20250408_095505-EDIT.jpg
+│   │   │       20250408_095505-EDIT_1.jpg
+│   │   │       20250408_095505.jpg
+│   │   │       20250408_095505_1.jpg
+│   │   │       20250408_095512.jpg
+│   │   │       20250408_095512_1.jpg
+│   │   │       20250408_095525-EDIT.jpg
+│   │   │       20250408_095525.jpg
+│   │   │       20250408_095532.jpg
+│   │   │       20250408_095601-EDIT.jpg
+│   │   │       20250408_095601.jpg
+│   │   │       20250408_095608.jpg
+│   │   │       20250408_095624-EDIT.jpg
+│   │   │       20250408_095624.jpg
+│   │   │       20250408_095634.jpg
+│   │   │       20250408_095648-EDIT.jpg
+│   │   │       20250408_095648.jpg
+│   │   │       20250408_095652.jpg
+│   │   │       20250408_095707-EDIT.jpg
+│   │   │       20250408_095707.jpg
+│   │   │       20250408_095713.jpg
+│   │   │       20250408_095725-EDIT.jpg
+│   │   │       20250408_095725.jpg
+│   │   │       20250408_095736.jpg
+│   │   │       20250408_095801.jpg
+│   │   │       20250408_095814.jpg
+│   │   │       20250408_095823.jpg
+│   │   │       20250408_095839-EDIT.jpg
+│   │   │       20250408_095839.jpg
+│   │   │       20250408_095847.jpg
+│   │   │       20250408_095902-EDIT.jpg
+│   │   │       20250408_095902.jpg
+│   │   │       20250408_095908.jpg
+│   │   │       20250408_095923-EDIT.jpg
+│   │   │       20250408_095923.jpg
+│   │   │       20250408_095929.jpg
+│   │   │       20250408_095943-EDIT.jpg
+│   │   │       20250408_095943.jpg
+│   │   │       20250408_095950.jpg
+│   │   │       20250409_081756.jpg
+│   │   │       20250409_081756_.jpg
+│   │   │       20250409_081812.jpg
+│   │   │       20250409_081832-EDIT.jpg
+│   │   │       20250409_081832.jpg
+│   │   │       20250409_081843.jpg
+│   │   │       20250409_081907.jpg
+│   │   │       20250409_081907_.jpg
+│   │   │       20250409_081907_1.jpg
+│   │   │       20250409_081915.jpg
+│   │   │       20250409_081915_1.jpg
+│   │   │       20250409_081935.jpg
+│   │   │       20250409_081935_1.jpg
+│   │   │       20250409_082005-EDIT.jpg
+│   │   │       20250409_082005.jpg
+│   │   │       20250409_082014.jpg
+│   │   │       20250409_082032-EDIT.jpg
+│   │   │       20250409_082032.jpg
+│   │   │       20250409_082046.jpg
+│   │   │       20250409_082146-EDIT.jpg
+│   │   │       20250409_082146.jpg
+│   │   │       20250409_082200.jpg
+│   │   │       20250409_082210.jpg
+│   │   │       20250409_082239.jpg
+│   │   │       20250409_082244.jpg
+│   │   │       20250409_082310.jpg
+│   │   │       20250409_082324.jpg
+│   │   │       20250409_082336.jpg
+│   │   │       20250409_082530.jpg
+│   │   │       20250409_082552.jpg
+│   │   │       20250409_082605-EDIT.jpg
+│   │   │       20250409_082605.jpg
+│   │   │       20250409_082657-EDIT.jpg
+│   │   │       20250409_082657.jpg
+│   │   │       20250409_082706.jpg
+│   │   │       20250409_082715.jpg
+│   │   │       20250409_082936.jpg
+│   │   │       20250409_082944.jpg
+│   │   │       20250409_082944_1.jpg
+│   │   │       20250409_082954.jpg
+│   │   │       20250409_083040-EDIT.jpg
+│   │   │       20250409_083040.jpg
+│   │   │       20250409_083105.jpg
+│   │   │       61_3.jpg.jpg
+│   │   │       exelrad_1939_catalogue_.10.jpg
+│   │   │       Exelrad_Dual-Wave_Air_King_Six.jpg
+│   │   │       ore_profile.jpg
+│   │   │       placeholder.jpg
+│   │   │       RCNZ_1934_dial_shape.png
+│   │   │       RCNZ_1934_dial_shape_1.jpg
+│   │   │       RCNZ_1934_dial_shape_1_2.jpg
+│   │   │       sas_draglink.jpg
+│   │   │
+│   │   └───js
+│   │           part_editor.js
+│   │
+│   ├───templates
+│   │       brand_parts.html
+│   │       cart.html
+│   │       change_password.html
+│   │       checkout.html
+│   │       confirmation.html
+│   │       edit_profile.html
+│   │       gallery.html
+│   │       history.html
+│   │       layout.html
+│   │       login.html
+│   │       manage_part - Copy.html
+│   │       manage_part.html
+│   │       manage_tags.html
+│   │       part.html
+│   │       part.html.old
+│   │       profile.html
+│   │       register.html
+│   │       user_detail.html
+│   │       user_list.html
+│   │
+│   ├───utils
+│   │   │   helpers.py
+│   │   │
+│   │   └───__pycache__
+│   │           helpers.cpython-311.pyc
+│   │
+│   └───__pycache__
+│           models.cpython-311.pyc
+│           routes.cpython-311.pyc
+│           __init__.cpython-311.pyc
+│
+└───instance
+        nzvintageradioparts.db

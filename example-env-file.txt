@@ -1,0 +1,21 @@
+# Flask Core
+SECRET_KEY=your-secret-key-here
+
+# Database
+DATABASE_URL=sqlite:///project_database_name.db
+
+# Mailgun Configuration
+MAILGUN_SMTP_SERVER=smtp.mailprovider.org
+MAILGUN_SMTP_PORT=587 or whatever
+MAILGUN_SMTP_LOGIN=postmaster@yourdomain.mailprovider.org
+MAILGUN_SMTP_PASSWORD=your-mail-provider-password
+MAIL_DEFAULT_SENDER=noreply@yourdomain.com
+
+# Security
+FORCE_HTTPS=False  # Set to True in production
+
+# For development (memory backend - still warns but works)
+RATELIMIT_STORAGE_URI=memory://
+
+# For production (Redis example):
+# RATELIMIT_STORAGE_URI=redis://localhost:6379/0

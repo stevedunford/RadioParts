@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>New User Registration</title>
+</head>
+<body>
+    <h2>New User Registration Requires Approval</h2>
+    <p>A new user has registered on Vintage Radio Parts:</p>
+    
+    <ul>
+        <li><strong>Name:</strong> {{ user.first_name }} {{ user.last_name }}</li>
+        <li><strong>Email:</strong> {{ user.email }}</li>
+        <li><strong>Membership #:</strong> {{ user.membership_number }}</li>
+    </ul>
+    
+    <p>
+        <a href="{{ approve_url }}">Click here to review and activate this account</a>
+    </p>
+    
+    <footer>
+        <p>Vintage Radio Parts Admin</p>
+    </footer>
+</body>
+</html>
